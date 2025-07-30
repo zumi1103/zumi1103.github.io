@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <title>3Dモデル Generator</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1">
+    <style>
+        body {
+            margin: 0;
+            background-color: #f0f0f0;
+            color: #333;
+            font-family: sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .ui-row {
+            margin-bottom: 10px;
+        }
+        .ui-row label {
+            display: inline-block;
+            width: 120px;
+        }
+        .ui-row input {
+            width: 80px;
+        }
+        h3 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <h3>寸法を編集</h3>
+        <div class="ui-row">
+            <label for="width">幅 (Width):</label>
+            <input type="number" id="width" value="200">
+        </div>
+        <div class="ui-row">
+            <label for="height">高さ (Height):</label>
+            <input type="number" id="height" value="100">
+        </div>
+        <div class="ui-row">
+            <label for="depth">奥行き (Depth):</label>
+            <input type="number" id="depth" value="20">
+        </div>
+        <div class="ui-row">
+            <label for="bevel">面取り (Bevel):</label>
+            <input type="number" id="bevel" value="10">
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let scene, camera, renderer, controls, model;
+
+        // UI要素
+        const widthInput = document.getElementById('width');
+        const heightInput = document.getElementById('height');
+        const depthInput = document.getElementById('depth');
+        const bevelInput = document.getElementById('bevel');
+
+        // 1. 初期化関数
+        function init() {
+            // シーン
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xdddddd);
+
+            // カメラ
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.set(0, 50, 350);
+
+            // ライト
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            // レンダラー
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // カメラコントローラー
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            // モデルの生成
+            createModel();
+
+            // UIのイベントリスナー
+            [widthInput, heightInput, depthInput, bevelInput].forEach(input => {
+                input.addEventListener('input', createModel);
+            });
+
+            // ウィンドウリサイズ対応
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // 2. モデル生成関数
+        function createModel() {
+            // 既存のモデルがあればシーンから削除
+            if (model) {
+                scene.remove(model);
+                model.geometry.dispose();
+                // マテリアルが配列の場合、各マテリアルを破棄
+                if (Array.isArray(model.material)) {
+                    model.material.forEach(material => {
+                        material.map?.dispose();
+                        material.dispose();
+                    });
+                } else {
+                    model.material.map?.dispose();
+                    model.material.dispose();
+                }
+            }
+
+            // UIから寸法を取得
+            const width = parseFloat(widthInput.value);
+            const height = parseFloat(heightInput.value);
+            const depth = parseFloat(depthInput.value);
+            const bevelSize = parseFloat(bevelInput.value);
+            
+            // ジオメトリの生成
+            const shape = new THREE.Shape();
+            const radius = bevelSize; // 面取りの角の丸み
+            shape.moveTo(0, radius);
+            shape.lineTo(0, height - radius);
+            shape.absarc(radius, height - radius, radius, Math.PI, Math.PI / 2, true); // 左上
+            shape.lineTo(width - radius, height);
+            shape.absarc(width - radius, height - radius, radius, Math.PI / 2, 0, true); // 右上
+            shape.lineTo(width, radius);
+            shape.absarc(width - radius, radius, radius, 0, -Math.PI / 2, true); // 右下
+            shape.lineTo(radius, 0);
+            shape.absarc(radius, radius, radius, -Math.PI / 2, -Math.PI, true); // 左下
+
+            const extrudeSettings = {
+                depth: depth - bevelSize * 2, // 押し出しの深さ
+                bevelEnabled: true,
+                bevelThickness: bevelSize,
+                bevelSize: bevelSize,
+                bevelSegments: 5
+            };
+
+            const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            geometry.center(); // ジオメトリを原点中心に移動
+
+            // マテリアルの生成（前面用とその他用）
+            const frontMaterial = new THREE.MeshStandardMaterial({
+                map: createTextTexture(width, height),
+                roughness: 0.7,
+                metalness: 0.1,
+            });
+            const sideMaterial = new THREE.MeshStandardMaterial({
+                color: 0xc0c0c0,
+                roughness: 0.7,
+                metalness: 0.1,
+            });
+            
+            // モデル（メッシュ）の作成
+            model = new THREE.Mesh(geometry, [sideMaterial, frontMaterial]); // 0:側面, 1:表面
+            
+            // シーンにモデルを追加
+            scene.add(model);
+        }
+
+        // 3. テキスト付きテクスチャを生成する関数
+        function createTextTexture(width, height) {
+            const canvas = document.createElement('canvas');
+            // アスペクト比を維持しつつ、テクスチャの解像度を決定
+            const canvasWidth = 512;
+            const canvasHeight = Math.floor(canvasWidth * (height / width));
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            
+            const ctx = canvas.getContext('2d');
+
+            // 背景色
+            ctx.fillStyle = '#E6F2E8'; // 画像に近い薄緑色
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+            // テキスト設定
+            const fontSize = canvasHeight / 6;
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.fillStyle = '#333333';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // テキスト描画
+            const centerX = canvasWidth / 2;
+            const centerY = canvasHeight / 2;
+            const lineHeight = fontSize * 1.2;
+
+            ctx.fillText('クリックすると', centerX, centerY - lineHeight * 1.5);
+            ctx.fillText('トリガーの初期設定が実行されます。', centerX, centerY - lineHeight * 0.5);
+            
+            ctx.font = `${fontSize * 0.9}px sans-serif`; //少しフォントを小さく
+            ctx.fillText('エラーの場合は', centerX, centerY + lineHeight * 1.0);
+            ctx.fillText('エディタから実施ください。', centerX, centerY + lineHeight * 2.0);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        // 4. ウィンドウリサイズ処理
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 5. アニメーションループ
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // カメラコントローラーの更新
+            renderer.render(scene, camera);
+        }
+
+        // 実行開始
+        init();
+        animate();
+
+    </script>
+</body>
+</html>
