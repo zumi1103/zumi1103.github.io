@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>インフォグラフィック：企業の非公開化と上場廃止の全貌</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #F0F4F8;
+        }
+        .brand-text-primary { color: #003F5C; }
+        .brand-text-secondary { color: #374C80; }
+        .brand-accent-pink { color: #EF5675; }
+        .brand-accent-orange { color: #FF764A; }
+        .brand-bg-dark { background-color: #003F5C; }
+        .brand-bg-light { background-color: #FFFFFF; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 45vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .flowchart-step {
+            border: 2px solid #374C80;
+            background-color: #ffffff;
+            color: #003F5C;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            flex-grow: 1;
+        }
+        .flowchart-arrow {
+            font-size: 2.5rem;
+            color: #7A5195;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 1rem;
+        }
+        .stat-card {
+            background-color: #FFFFFF;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="brand-bg-light">
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center my-12">
+            <h1 class="text-4xl md:text-6xl font-black brand-text-primary mb-4">企業の非公開化：戦略的撤退の全貌</h1>
+            <p class="text-lg md:text-xl brand-text-secondary max-w-3xl mx-auto">近年、日本企業の間で「株式非公開化」が経営戦略の選択肢として急増しています。これは経営不振の証ではなく、短期的な市場圧力から解放され、抜本的な改革を断行するための積極的な決断です。</p>
+        </header>
+
+        <section id="trend" class="my-16">
+            <div class="stat-card">
+                <h2 class="text-3xl font-bold brand-text-primary text-center mb-2">MBO件数の推移</h2>
+                <p class="brand-text-secondary text-center mb-6">経営陣による買収（MBO）を伴う非公開化は、特に近年増加傾向にあります。</p>
+                <div class="chart-container">
+                    <canvas id="mboTrendChart"></canvas>
+                </div>
+                <p class="text-sm text-gray-500 text-center mt-4">出所：各種公開情報より作成した代表的な傾向</p>
+            </div>
+        </section>
+
+        <section id="reasons" class="my-20">
+            <h2 class="text-4xl font-bold brand-text-primary text-center mb-12">なぜ企業は非公開化を選択するのか？</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="stat-card">
+                    <div class="text-5xl brand-accent-pink mb-4">🚀</div>
+                    <h3 class="text-2xl font-bold brand-text-secondary mb-2">経営の迅速化</h3>
+                    <p class="text-gray-600">株主総会などの手続きが不要となり、環境変化に即応した大胆かつ迅速な意思決定が可能になります。</p>
+                </div>
+                <div class="stat-card">
+                    <div class="text-5xl brand-accent-orange mb-4">🎯</div>
+                    <h3 class="text-2xl font-bold brand-text-secondary mb-2">長期的戦略の追求</h3>
+                    <p class="text-gray-600">四半期ごとの業績圧力から解放され、短期的な株価を気にせず、抜本的な事業改革や大規模投資に集中できます。</p>
+                </div>
+                <div class="stat-card">
+                    <div class="text-5xl brand-accent-pink mb-4">🛡️</div>
+                    <h3 class="text-2xl font-bold brand-text-secondary mb-2">敵対的買収の防止</h3>
+                    <p class="text-gray-600">株式が市場で取引されなくなるため、敵対的買収の対象となるリスクを根本から排除できます。</p>
+                </div>
+                <div class="stat-card">
+                    <div class="text-5xl brand-accent-orange mb-4">💰</div>
+                    <h3 class="text-2xl font-bold brand-text-secondary mb-2">コスト削減</h3>
+                    <p class="text-gray-600">上場維持費用、IR活動、監査費用など、上場企業特有のコストを大幅に削減できます。</p>
+                </div>
+                <div class="stat-card">
+                    <div class="text-5xl brand-accent-pink mb-4">🤫</div>
+                    <h3 class="text-2xl font-bold brand-text-secondary mb-2">機密情報の保持</h3>
+                    <p class="text-gray-600">詳細な情報開示義務から解放され、経営戦略や技術情報などの機密性を高く保つことができます。</p>
+                </div>
+                <div class="stat-card">
+                    <div class="text-5xl brand-accent-orange mb-4">🤝</div>
+                    <h3 class="text-2xl font-bold brand-text-secondary mb-2">事業承継の円滑化</h3>
+                    <p class="text-gray-600">オーナー企業において、株式を後継者に集中させ、安定した経営体制で事業承継を進めやすくなります。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="process" class="my-20 py-12 brand-bg-dark text-white rounded-xl">
+            <h2 class="text-4xl font-bold text-center mb-12">非公開化への道のり：典型的なプロセス</h2>
+            <div class="flex flex-col md:flex-row items-center justify-center p-4 space-y-4 md:space-y-0 md:space-x-4">
+                <div class="flowchart-step">1. 計画と発表<br>(MBO/TOB)</div>
+                <div class="flowchart-arrow transform md:rotate-0 rotate-90">→</div>
+                <div class="flowchart-step">2. 株式公開買付<br>(TOB)の実施</div>
+                <div class="flowchart-arrow transform md:rotate-0 rotate-90">→</div>
+                <div class="flowchart-step">3. 少数株主の排除<br>(スクイーズアウト)</div>
+                <div class="flowchart-arrow transform md:rotate-0 rotate-90">→</div>
+                <div class="flowchart-step">4. 上場廃止</div>
+            </div>
+            <p class="text-center mt-8 max-w-2xl mx-auto text-gray-300">このプロセスは数ヶ月を要し、法的な手続きと厳格な情報開示が求められます。株主は通常、TOBの段階で株式を売却します。</p>
+        </section>
+
+        <section id="stakeholders" class="my-20">
+            <h2 class="text-4xl font-bold brand-text-primary text-center mb-12">ステークホルダーへの影響</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                <div class="stat-card">
+                    <h3 class="text-2xl font-bold brand-text-secondary mb-4">🏢 企業</h3>
+                    <div class="mb-4">
+                        <h4 class="font-bold text-green-600">メリット</h4>
+                        <ul class="list-disc list-inside text-gray-700">
+                            <li>経営の自由度とスピード向上</li>
+                            <li>長期的な視点での経営</li>
+                            <li>コスト削減</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-red-600">デメリット</h4>
+                        <ul class="list-disc list-inside text-gray-700">
+                            <li>市場からの資金調達が不可に</li>
+                            <li>社会的信用の低下リスク</li>
+                            <li>LBOの場合、負債が増加</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <h3 class="text-2xl font-bold brand-text-secondary mb-4">👤 株主</h3>
+                    <div class="mb-4">
+                        <h4 class="font-bold text-green-600">メリット</h4>
+                        <ul class="list-disc list-inside text-gray-700">
+                            <li>プレミアム付き価格で現金化</li>
+                            <li>市場での売却機会</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-red-600">デメリット</h4>
+                        <ul class="list-disc list-inside text-gray-700">
+                            <li>将来の成長機会を失う</li>
+                            <li>強制的な株式売却（スクイーズアウト）</li>
+                            <li>売却益に約20%の税金</li>
+                        </ul>
+                    </div>
+                    <div class="chart-container h-48 max-h-48 mt-4">
+                         <canvas id="taxChart"></canvas>
+                    </div>
+                     <p class="text-sm text-gray-500 text-center mt-2">譲渡所得に対する税率の内訳</p>
+                </div>
+
+                <div class="stat-card">
+                    <h3 class="text-2xl font-bold brand-text-secondary mb-4">👥 従業員</h3>
+                    <div class="mb-4">
+                        <h4 class="font-bold text-green-600">メリット</h4>
+                        <ul class="list-disc list-inside text-gray-700">
+                            <li>MBOなら雇用の継続性が高い</li>
+                            <li>企業文化が維持されやすい</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-red-600">デメリット</h4>
+                        <ul class="list-disc list-inside text-gray-700">
+                            <li>リストラのリスク</li>
+                            <li>ストックオプションの価値が消滅・変化</li>
+                            <li>モチベーションへの影響</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="cases" class="my-20">
+            <h2 class="text-4xl font-bold brand-text-primary text-center mb-12">非公開化の多様な目的：事例研究</h2>
+            <div class="stat-card">
+                <p class="brand-text-secondary text-center mb-6">非公開化は、企業の状況に応じて様々な目的で活用されます。</p>
+                <div class="chart-container">
+                    <canvas id="caseStudyChart"></canvas>
+                </div>
+                 <p class="text-sm text-gray-500 text-center mt-4">各社のMBO（株式公開買付）実施年</p>
+            </div>
+        </section>
+
+        <footer class="text-center my-12 py-8 border-t-2 border-gray-200">
+            <h2 class="text-3xl font-bold brand-text-primary mb-4">結論：戦略的自律性とのトレードオフ</h2>
+            <p class="text-lg brand-text-secondary max-w-3xl mx-auto">企業の非公開化は、公開市場の制約から逃れ、経営の自由を獲得するための強力な手段です。しかし、それは資金調達の道を閉ざし、新たな財務リスクを負うという大きな代償を伴います。このトレードオフを理解することが、非公開化という戦略を評価する上で不可欠です。</p>
+        </footer>
+
+    </main>
+
+    <script>
+        const FONT_COLOR = '#003F5C';
+        const GRID_COLOR = '#D1D5DB';
+        const PALETTE = {
+            blue: '#003F5C',
+            purple: '#7A5195',
+            pink: '#EF5675',
+            orange: '#FF764A',
+            yellow: '#FFA600'
+        };
+
+        function wrapLabel(str, maxWidth) {
+            if (str.length <= maxWidth) {
+                return str;
+            }
+            let result = [];
+            let currentLine = '';
+            const words = str.split('');
+            for (let i = 0; i < words.length; i++) {
+                let word = words[i];
+                if ((currentLine + word).length > maxWidth) {
+                    result.push(currentLine);
+                    currentLine = '';
+                }
+                currentLine += word;
+            }
+            if (currentLine) {
+                result.push(currentLine);
+            }
+            return result;
+        }
+
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join('');
+            }
+            return label;
+        };
+        
+        const commonChartOptions = {
+            maintainAspectRatio: false,
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: FONT_COLOR,
+                        font: { size: 14 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        title: tooltipTitleCallback
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: FONT_COLOR },
+                    grid: { color: GRID_COLOR }
+                },
+                x: {
+                    ticks: { color: FONT_COLOR },
+                    grid: { color: 'transparent' }
+                }
+            }
+        };
+
+        new Chart(document.getElementById('mboTrendChart'), {
+            type: 'line',
+            data: {
+                labels: ['2018', '2019', '2020', '2021', '2022', '2023'],
+                datasets: [{
+                    label: 'MBO実施件数',
+                    data: [45, 52, 50, 72, 85, 98],
+                    borderColor: PALETTE.pink,
+                    backgroundColor: 'rgba(239, 86, 117, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: commonChartOptions
+        });
+
+        new Chart(document.getElementById('taxChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['譲渡所得税 (15.315%)', '住民税 (5%)', '手取り'],
+                datasets: [{
+                    data: [15.315, 5, 79.685],
+                    backgroundColor: [PALETTE.orange, PALETTE.yellow, '#CFD8DC'],
+                    borderColor: '#FFFFFF',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: FONT_COLOR,
+                            font: { size: 12 },
+                            boxWidth: 15
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('caseStudyChart'), {
+            type: 'bar',
+            data: {
+                labels: [
+                    wrapLabel('すかいらーく (事業再構築)', 16), 
+                    wrapLabel('ベネッセHD (デジタル変革)', 16), 
+                    wrapLabel('東芝 (ガバナンス安定化)', 16), 
+                    wrapLabel('大正製薬 (創業家支配権強化)', 16)
+                ],
+                datasets: [{
+                    label: 'MBO実施年',
+                    data: [2006, 2023, 2023, 2023],
+                    backgroundColor: [PALETTE.purple, PALETTE.pink, PALETTE.orange, PALETTE.yellow],
+                    barThickness: 50,
+                }]
+            },
+            options: {
+                 ...commonChartOptions,
+                 indexAxis: 'y',
+                 scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: FONT_COLOR, font: { size: 14 } },
+                        grid: { color: 'transparent' }
+                    },
+                    x: {
+                        ticks: { color: FONT_COLOR, callback: function(value) { return value; } },
+                        grid: { color: GRID_COLOR },
+                        min: 2000
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

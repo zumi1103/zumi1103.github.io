@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EQTによるフジテック買収：インフォグラフィック分析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #F3F4F6;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .flowchart-node {
+            border: 2px solid #0047AB;
+            background-color: #FFFFFF;
+            color: #0047AB;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .flowchart-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #0047AB;
+            margin: 0 0.5rem;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: #0096FF;
+            border-radius: 2px;
+        }
+        .timeline-item {
+            position: relative;
+            width: 50%;
+            padding: 2rem 2.5rem;
+        }
+        .timeline-item:nth-child(odd) {
+            left: 0;
+            padding-right: 2.5rem;
+        }
+        .timeline-item:nth-child(even) {
+            left: 50%;
+            padding-left: 2.5rem;
+        }
+        .timeline-dot {
+            content: '';
+            position: absolute;
+            top: 2.5rem;
+            width: 20px;
+            height: 20px;
+            background-color: #FFC300;
+            border: 4px solid #0047AB;
+            border-radius: 50%;
+            z-index: 10;
+        }
+        .timeline-item:nth-child(odd) .timeline-dot {
+            right: -10px;
+            transform: translateX(0%);
+        }
+        .timeline-item:nth-child(even) .timeline-dot {
+            left: -10px;
+            transform: translateX(0%);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <header class="bg-[#0047AB] text-white text-center py-12 px-4">
+        <h1 class="text-4xl md:text-6xl font-black tracking-tight">EQT-フジテック買収</h1>
+        <p class="mt-4 text-lg md:text-2xl font-bold text-[#FFC300]">ガバナンス危機に対するプライベート・エクイティによる解決策</p>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+
+        <section class="mb-16">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-[#0047AB]">ディールの概要</h2>
+                <p class="text-gray-600 mt-2">本TOBは、単なる企業買収ではなく、長年の経営対立に終止符を打つための戦略的判断です。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="text-lg font-semibold text-gray-500">買収総額</p>
+                    <p class="text-5xl font-extrabold text-[#0047AB] mt-2">約4,078億円</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="text-lg font-semibold text-gray-500">1株当たり買付価格</p>
+                    <p class="text-5xl font-extrabold text-[#0047AB] mt-2">5,700円</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <p class="text-lg font-semibold text-gray-500">市場価格比</p>
+                    <p class="text-5xl font-extrabold text-[#FF5733] mt-2">-8.1%</p>
+                    <p class="text-sm text-gray-500 mt-1">（2025/7/29終値比ディスカウント）</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-16">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-bold text-center text-[#0047AB] mb-4">TOB価格のポジショニング</h3>
+                     <p class="text-gray-600 mb-4 text-sm">EQTが提示した5,700円という価格は、TOB発表直前の市場終値を下回る異例のディスカウント価格です。これは、買収期待で過熱した投機的な株価を排し、ファンダメンタルズに基づいた「本来の企業価値」を提示する買収者側の強い意志を示唆しています。一方で、アナリストの目標株価コンセンサスよりは大幅に低い水準となっています。</p>
+                    <div class="chart-container">
+                        <canvas id="priceComparisonChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-2xl font-bold text-center text-[#0047AB] mb-4">主要プレイヤーの構図</h3>
+                    <p class="text-gray-600 mb-4 text-sm">この買収劇は、3つの主要な当事者の利害が複雑に絡み合った結果です。創業家とアクティビストの対立が膠着状態を生み、そこにグローバルPEファンドが解決策を提示する形で介入しました。</p>
+                    <div class="space-y-4">
+                        <div class="flex items-start p-4 bg-blue-50 rounded-lg">
+                            <span class="text-3xl mr-4">🏢</span>
+                            <div>
+                                <h4 class="font-bold text-lg text-[#0047AB]">フジテック（対象会社）</h4>
+                                <p class="text-sm text-gray-700">堅調な業績を持つグローバル企業。しかし、創業家とアクティビストの対立により深刻なガバナンス不全に陥っていた。</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start p-4 bg-yellow-50 rounded-lg">
+                            <span class="text-3xl mr-4">📢</span>
+                            <div>
+                                <h4 class="font-bold text-lg text-[#FFC300]">オアシス（物言う株主）</h4>
+                                <p class="text-sm text-gray-700">筆頭株主として創業家の経営問題を鋭く追及。ガバナンス改革を要求し、経営陣の入れ替えを実現。対立の触媒となった。</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start p-4 bg-red-50 rounded-lg">
+                            <span class="text-3xl mr-4">💼</span>
+                            <div>
+                                <h4 class="font-bold text-lg text-[#C70039]">EQT（買収者）</h4>
+                                <p class="text-sm text-gray-700">欧州拠点のグローバルPEファンド。ガバナンス危機を投資機会と捉え、非公開化による根本的な問題解決を提案した。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-[#0047AB]">触媒となったガバナンス闘争の軌跡</h2>
+                <p class="text-gray-600 mt-2">EQTによる買収は、2年以上にわたる創業家とアクティビスト「オアシス」の壮絶な闘争の終着点でした。</p>
+            </div>
+            <div class="relative timeline">
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <p class="font-bold text-lg text-[#0096FF]">2022年5月：対立表面化</p>
+                        <p class="text-sm mt-2">オアシスがキャンペーンを開始。創業家による会社の私物化疑惑を告発。</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <p class="font-bold text-lg text-[#0096FF]">2023年2月：勢力図の変化</p>
+                        <p class="text-sm mt-2">臨時株主総会でオアシス推薦の取締役が選任され、取締役会の構成が大きく変わる。</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <p class="font-bold text-lg text-[#0096FF]">2023年3月：創業家会長の解任</p>
+                        <p class="text-sm mt-2">新しい取締役会が、創業家出身の内山高一会長の解任という歴史的決議を下す。</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <p class="font-bold text-lg text-[#0096FF]">2023年6月：膠着状態へ</p>
+                        <p class="text-sm mt-2">内山氏側の反撃（株主提案）が否決され、経営の混乱と機能不全が決定的に。外部介入の土壌が整う。</p>
+                    </div>
+                </div>
+                 <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <p class="font-bold text-lg text-[#FF5733]">2025年7月：PEによる解決</p>
+                        <p class="text-sm mt-2">EQTが非公開化を目的としたTOBを発表。長年の闘争に終止符が打たれる。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-16 bg-white p-8 rounded-lg shadow-lg">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-[#0047AB]">「和解型買収」の構造</h2>
+                <p class="text-gray-600 mt-2">本件は敵対的買収ではなく、創業家を巻き込んだ「スポンサー型」のスキームです。これにより、対立は「名誉ある撤退」へと転換されました。</p>
+            </div>
+            <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4">
+                <div class="flowchart-node w-full md:w-1/4">
+                    <p>EQT</p>
+                    <p class="text-xs">(買収主体)</p>
+                </div>
+                <div class="flowchart-arrow">➡️</div>
+                <div class="flowchart-node w-full md:w-1/3 relative">
+                    <p>買収目的会社 (SPC)</p>
+                    <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 flex flex-col items-center">
+                        <div class="w-0.5 h-4 bg-[#0047AB]"></div>
+                        <div class="flowchart-arrow transform rotate-90">➡️</div>
+                    </div>
+                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex flex-col items-center">
+                        <div class="flowchart-arrow transform -rotate-90">➡️</div>
+                        <div class="w-0.5 h-4 bg-[#C70039]"></div>
+                        <div class="flowchart-node !border-[#C70039] !text-[#C70039] text-xs p-2 whitespace-nowrap">
+                            創業家が約15%再出資
+                        </div>
+                    </div>
+                </div>
+                <div class="flowchart-arrow">➡️</div>
+                <div class="flowchart-node w-full md:w-1/4">
+                    <p>フジテック</p>
+                    <p class="text-xs">(非公開化)</p>
+                </div>
+            </div>
+            <p class="text-center text-sm text-gray-600 mt-12">この構造により、EQTは創業家の持つ知見を維持しつつ経営支配権を確保。一方、創業家は株式を現金化した上で少数株主として会社に関与し続けることが可能となり、全ての主要関係者にとって合理的な解決策となりました。</p>
+        </section>
+        
+        <section>
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-[#0047AB]">今後の展望と市場への影響</h2>
+                <p class="text-gray-600 mt-2">この案件は、日本のM&A市場に新たなモデルを提示しました。</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                    <p class="text-5xl mb-4">🔄</p>
+                    <h3 class="text-xl font-bold text-[#0047AB] mb-2">フジテックの再生</h3>
+                    <p class="text-sm text-gray-600">非公開化により、短期的な市場圧力から解放。EQT主導でガバナンス刷新、オペレーション効率化、長期的な成長投資が可能に。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                    <p class="text-5xl mb-4">💡</p>
+                    <h3 class="text-xl font-bold text-[#0047AB] mb-2">新たなM&Aの「型」</h3>
+                    <p class="text-sm text-gray-600">「アクティビストの介入 → 経営混乱 → PEによる非公開化」というパイプラインが確立。同様の事例が増加する可能性。</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                    <p class="text-5xl mb-4">📈</p>
+                    <h3 class="text-xl font-bold text-[#0047AB] mb-2">PEファンドの役割進化</h3>
+                    <p class="text-sm text-gray-600">PEファンドが単なる投資家ではなく、複雑なガバナンス問題の「解決者」としての役割を担う存在へと進化していることを証明。</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="text-center py-8 px-4 mt-8 bg-gray-800 text-gray-400 text-sm">
+        <p>このインフォグラフィックは、公開情報に基づき作成されたものです。投資の勧誘を目的としたものではありません。</p>
+        <p class="mt-2">&copy; 2025 Infographic Analysis. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        const wrapLabel = (label) => {
+            if (label.length <= 16) {
+                return label;
+            }
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            for (const word of words) {
+                if ((currentLine + ' ' + word).trim().length > 16) {
+                    lines.push(currentLine.trim());
+                    currentLine = word;
+                } else {
+                    currentLine = (currentLine + ' ' + word).trim();
+                }
+            }
+            if (currentLine) {
+                lines.push(currentLine.trim());
+            }
+            return lines;
+        };
+        
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+              return label.join(' ');
+            } else {
+              return label;
+            }
+        };
+
+        const priceComparisonCtx = document.getElementById('priceComparisonChart').getContext('2d');
+        new Chart(priceComparisonCtx, {
+            type: 'bar',
+            data: {
+                labels: [
+                    wrapLabel('アナリスト目標株価 コンセンサス'), 
+                    wrapLabel('TOB発表前日終値 (2025/7/29)'), 
+                    wrapLabel('EQTによるTOB価格'),
+                    wrapLabel('AI株価診断による 理論株価')
+                ],
+                datasets: [{
+                    label: '株価 (円)',
+                    data: [6860, 6205, 5700, 5010],
+                    backgroundColor: [
+                        '#0096FF',
+                        '#0047AB',
+                        '#FF5733',
+                        '#FFC300'
+                    ],
+                    borderColor: [
+                        '#0096FF',
+                        '#0047AB',
+                        '#FF5733',
+                        '#FFC300'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString() + '円';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: tooltipTitleCallback,
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.x !== null) {
+                                    label += context.parsed.x.toLocaleString() + '円';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
