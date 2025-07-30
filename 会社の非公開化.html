@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>インフォグラフィック：企業の非公開化と上場廃止の全貌</title>
+    <title>インフォグラフィック：企業の非公開化と上場廃止の全貌 (AI機能搭載)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,6 +63,19 @@
         .stat-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #EF5675;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -139,7 +152,6 @@
         <section id="stakeholders" class="my-20">
             <h2 class="text-4xl font-bold brand-text-primary text-center mb-12">ステークホルダーへの影響</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
                 <div class="stat-card">
                     <h3 class="text-2xl font-bold brand-text-secondary mb-4">🏢 企業</h3>
                     <div class="mb-4">
@@ -159,7 +171,6 @@
                         </ul>
                     </div>
                 </div>
-
                 <div class="stat-card">
                     <h3 class="text-2xl font-bold brand-text-secondary mb-4">👤 株主</h3>
                     <div class="mb-4">
@@ -182,7 +193,6 @@
                     </div>
                      <p class="text-sm text-gray-500 text-center mt-2">譲渡所得に対する税率の内訳</p>
                 </div>
-
                 <div class="stat-card">
                     <h3 class="text-2xl font-bold brand-text-secondary mb-4">👥 従業員</h3>
                     <div class="mb-4">
@@ -212,6 +222,31 @@
                     <canvas id="caseStudyChart"></canvas>
                 </div>
                  <p class="text-sm text-gray-500 text-center mt-4">各社のMBO（株式公開買付）実施年</p>
+            </div>
+        </section>
+        
+        <section id="ai-analysis" class="my-20">
+            <div class="stat-card text-center">
+                <h2 class="text-4xl font-bold brand-text-primary mb-4">✨ AIによるシナリオ分析</h2>
+                <p class="brand-text-secondary max-w-2xl mx-auto mb-8">あなたの会社が非公開化を選択した場合、どのようなシナリオが考えられるでしょうか？会社名と業種を入力して、AIによる分析を試してみましょう。</p>
+                
+                <div class="max-w-xl mx-auto">
+                    <div class="mb-4">
+                        <input type="text" id="companyNameInput" placeholder="会社名（例：株式会社未来テック）" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    </div>
+                    <div class="mb-6">
+                        <input type="text" id="industryInput" placeholder="業種（例：ソフトウェア開発）" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    </div>
+                    <button id="generateScenarioBtn" class="w-full bg-pink-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-pink-600 transition duration-300 ease-in-out transform hover:scale-105">
+                        分析シナリオを生成
+                    </button>
+                </div>
+
+                <div id="aiResultContainer" class="mt-8 text-left">
+                    <div id="loader" class="loader hidden"></div>
+                    <div id="aiResult" class="prose max-w-none prose-h3:brand-text-secondary prose-h3:font-bold prose-ul:list-disc prose-ul:ml-6"></div>
+                    <div id="aiError" class="text-red-500 font-bold"></div>
+                </div>
             </div>
         </section>
 
@@ -381,6 +416,84 @@
                 }
             }
         });
+
+        const generateBtn = document.getElementById('generateScenarioBtn');
+        const companyNameInput = document.getElementById('companyNameInput');
+        const industryInput = document.getElementById('industryInput');
+        const loader = document.getElementById('loader');
+        const aiResultDiv = document.getElementById('aiResult');
+        const aiErrorDiv = document.getElementById('aiError');
+
+        generateBtn.addEventListener('click', async () => {
+            const companyName = companyNameInput.value.trim();
+            const industry = industryInput.value.trim();
+
+            if (!companyName || !industry) {
+                aiErrorDiv.textContent = '会社名と業種の両方を入力してください。';
+                return;
+            }
+
+            loader.classList.remove('hidden');
+            aiResultDiv.innerHTML = '';
+            aiErrorDiv.textContent = '';
+            generateBtn.disabled = true;
+
+            const prompt = `
+                以下の情報に基づき、企業が株式を非公開化する際の架空のシナリオ分析を、経営コンサルタントとして記述してください。
+
+                企業情報:
+                - 会社名: ${companyName}
+                - 業種: ${industry}
+
+                出力形式:
+                以下の3つのセクションに分けて、具体的かつ説得力のある内容を日本語で記述してください。各セクションは見出し（<h3>タグ）で始めてください。内容は<p>タグや<ul><li>タグを使って構造化してください。
+
+                1. ### 非公開化を検討する背景
+                   この企業がなぜ非公開化を選択する可能性があるのか、具体的な経営課題（例：短期的な業績圧力、競合の激化、大規模な事業転換の必要性など）を交えて説明してください。
+
+                2. ### 想定される課題とリスク
+                   非公開化のプロセスやその後に直面する可能性のある課題（例：資金調達、従業員の士気、顧客からの信頼など）を挙げてください。
+
+                3. ### 期待される長期的成果
+                   非公開化によって、この企業が最終的にどのような長期的メリット（例：経営の機動性向上、イノベーションの加速、企業価値の向上など）を享受できるかを予測してください。
+            `;
+
+            try {
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`APIエラー: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    aiResultDiv.innerHTML = text.replace(/\n/g, '<br>');
+                } else {
+                    throw new Error('AIからの有効な応答がありませんでした。');
+                }
+
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                aiErrorDiv.textContent = 'シナリオの生成中にエラーが発生しました。しばらくしてからもう一度お試しください。';
+            } finally {
+                loader.classList.add('hidden');
+                generateBtn.disabled = false;
+            }
+        });
+
     </script>
 </body>
 </html>
