@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIプロンプト作成チートシート</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chosen Palette: Calm Harmony (Light neutrals with a muted teal accent) -->
+    <!-- Application Structure Plan: A single-page application with a fixed sidebar for quick navigation and a main content area displaying each cheat sheet section as a distinct card. This structure is chosen over a simple long page to provide an "at-a-glance" index via the sidebar, making it function as a quick-reference tool. Key interactions include smooth scrolling from the navigation and a "copy to clipboard" button for each code example to enhance utility. -->
+    <!-- Visualization & Content Choices: The report content is a textual cheat sheet, so no data charts are needed. Each piece of information (a symbol's role and example) is presented in a structured HTML card (divs, headings, paragraphs) for clarity. The primary interaction is a "copy to clipboard" button (JS) for each code example, which directly serves the user's goal of re-using the information. This is more effective than a static text display. Confirmed NO SVG/Mermaid. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+        }
+        .code-block {
+            position: relative;
+        }
+        .copy-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: #4A5568;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .copy-button:hover {
+            background-color: #2D3748;
+        }
+        .sidebar-link.active {
+            background-color: #E6FFFA;
+            color: #2C7A7B;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <div class="flex min-h-screen">
+        <aside class="w-64 bg-white border-r border-slate-200 p-6 fixed h-full hidden lg:block">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">目次</h2>
+            <nav>
+                <ul class="space-y-2" id="sidebar-nav">
+                    <li><a href="#intro" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">はじめに</a></li>
+                    <li><a href="#heading" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">`#` (見出し)</a></li>
+                    <li><a href="#list" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">`*` (箇条書き)</a></li>
+                    <li><a href="#quote" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">`>` (引用)</a></li>
+                    <li><a href="#code" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">`` ` `` (コード)</a></li>
+                    <li><a href="#tag" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">`<tag>` (タグ)</a></li>
+                    <li><a href="#ordered-list" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">`1. 2.` (番号リスト)</a></li>
+                    <li><a href="#brackets" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">`[] {}` (括弧)</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="lg:ml-64 flex-1 p-4 sm:p-6 lg:p-10">
+            <div class="max-w-4xl mx-auto">
+                <header class="mb-10">
+                    <h1 class="text-4xl font-extrabold text-slate-900 mb-2">AIプロンプト作成チートシート</h1>
+                    <p class="text-lg text-slate-600">効果的な記号と記法ガイド</p>
+                </header>
+
+                <section id="intro" class="mb-12 bg-white p-8 rounded-xl shadow-md">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-4">なぜ記号を使うのか？</h2>
+                    <p class="text-slate-700 leading-relaxed mb-4">
+                        AIへの指示（プロンプト）で記号を使うと、人間が文章の構成を考えるのと同じように、AIが指示の構造や意図を正確に理解できるようになります。
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-slate-700">
+                        <li><span class="font-semibold text-teal-700">指示が明確になる：</span>命令、参考情報、制約条件などを区別できる。</li>
+                        <li><span class="font-semibold text-teal-700">出力の質が上がる：</span>より意図に沿った、精度の高い回答が返ってくる。</li>
+                        <li><span class="font-semibold text-teal-700">複雑な命令が可能になる：</span>手順を踏んだり、特定の形式で出力させたりできる。</li>
+                    </ul>
+                </section>
+                
+                <div class="space-y-8">
+                    <section id="heading" class="bg-white p-8 rounded-xl shadow-md">
+                        <h2 class="text-3xl font-mono font-bold text-teal-600 mb-3">`#` (見出し)</h2>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">役割：プロンプトの構造化</h3>
+                        <p class="text-slate-600 mb-4">`#` を使うと、文章のセクションを分けることができます。AIに対して、指示の全体像と各部分の役割を明確に伝えます。</p>
+                        <div class="code-block">
+                            <button class="copy-button">コピー</button>
+                            <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown"># 役割
+あなたはプロのマーケターです。
+
+## 指示
+以下の新商品のキャッチコピーを3つ提案してください。
+
+### 制約条件
+- ターゲットは20代の若者
+- 短く、覚えやすいフレーズにする
+
+## 商品情報
+- 商品名：スマートイヤホン「OtoLink」
+- 特徴：高音質、長時間バッテリー、防水機能</code></pre>
+                        </div>
+                    </section>
+                    
+                    <section id="list" class="bg-white p-8 rounded-xl shadow-md">
+                        <h2 class="text-3xl font-mono font-bold text-teal-600 mb-3">`*` (箇条書き / 強調)</h2>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">役割：情報の整理と重要点の伝達</h3>
+                        <p class="text-slate-600 mb-4">`*` は、項目をリスト化したり、特定の単語を強調したりするのに便利です。</p>
+                        <div class="code-block">
+                            <button class="copy-button">コピー</button>
+                            <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown">来週のチームミーティングのアジェンダを作成してください。
+含めるべき項目は以下の通りです。
+
+* 先週の進捗確認
+* **今週の課題共有**
+* 新規プロジェクトのブレインストーミング
+
+特に `**課題共有**` の部分に時間を多めに割く構成にしてください。</code></pre>
+                        </div>
+                    </section>
+
+                    <section id="quote" class="bg-white p-8 rounded-xl shadow-md">
+                        <h2 class="text-3xl font-mono font-bold text-teal-600 mb-3">`>` (引用ブロック)</h2>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">役割：指示文と処理対象テキストの分離</h3>
+                        <p class="text-slate-600 mb-4">`>` を使うことで、あなたの「指示」と、AIに「処理してほしい文章」を明確に区別できます。</p>
+                        <div class="code-block">
+                            <button class="copy-button">コピー</button>
+                            <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown">以下のカスタマーレビューを要約し、ポジティブな点とネガティブな点を抽出してください。
+
+> このカメラは画質が本当に素晴らしいです。特に夜景モードは感動しました。
+> ただ、バッテリーの持ちが少し短いのが残念なポイントです。
+> 全体的には満足しています。</code></pre>
+                        </div>
+                    </section>
+
+                    <section id="code" class="bg-white p-8 rounded-xl shadow-md">
+                        <h2 class="text-3xl font-mono font-bold text-teal-600 mb-3">`` ` `` (コードブロック)</h2>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">役割：コードや特定の出力フォーマットを指定</h3>
+                        <p class="text-slate-600 mb-4">バッククォート3つで囲むと、その中のテキストはAIが特定の形式を持つデータとして正確に認識します。</p>
+                        <div class="space-y-4">
+                            <div class="code-block">
+                                <p class="font-semibold text-slate-700 mb-2">例1：コードの記述</p>
+                                <button class="copy-button">コピー</button>
+                                <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown">以下のPythonコードに、処理内容を説明するコメントを追加してください。
+```python
+def fibonacci(n):
+    a, b = 0, 1
+    while a < n:
+        print(a, end=' ')
+        a, b = b, a+b
+```</code></pre>
+                            </div>
+                            <div class="code-block">
+                                <p class="font-semibold text-slate-700 mb-2">例2：出力形式の指定</p>
+                                <button class="copy-button">コピー</button>
+                                <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown">私の自己紹介文を、以下のJSON形式で生成してください。
+```json
+{
+  "name": "山田 太郎",
+  "occupation": "ソフトウェアエンジニア",
+  "hobby": ["読書", "旅行"]
+}
+```</code></pre>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <section id="tag" class="bg-white p-8 rounded-xl shadow-md">
+                        <h2 class="text-3xl font-mono font-bold text-teal-600 mb-3">`<tag>` (XMLタグ)</h2>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">役割：各要素の役割を厳密に定義</h3>
+                        <p class="text-slate-600 mb-4">`#` よりもさらに厳密にセクションの役割を伝えたい場合に効果的です。AIはXML/HTML形式の構造理解に長けています。</p>
+                        <div class="code-block">
+                            <button class="copy-button">コピー</button>
+                            <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown"><role>
+あなたは経験豊富な旅行プランナーです。
+</role>
+
+<instructions>
+以下の<conditions>に基づいて、3日間の北海道旅行プランを提案してください。
+</instructions>
+
+<conditions>
+- 時期：7月
+- 興味：自然、グルメ
+- 予算：1人10万円
+</conditions>
+
+<output_format>
+1日ごとのスケジュール形式で回答してください。
+</output_format></code></pre>
+                        </div>
+                    </section>
+
+                    <section id="ordered-list" class="bg-white p-8 rounded-xl shadow-md">
+                        <h2 class="text-3xl font-mono font-bold text-teal-600 mb-3">`1. 2.` (番号付きリスト)</h2>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">役割：手順や思考プロセスの指定</h3>
+                        <p class="text-slate-600 mb-4">AIに特定の順序でタスクを実行させたり、段階的に思考させたりしたい場合に使います。</p>
+                        <div class="code-block">
+                            <button class="copy-button">コピー</button>
+                            <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown">「リモートワークの未来」というテーマでブログ記事の構成案を作成してください。
+以下の手順で思考してください。
+
+1. まず、リモートワークの現状のメリットとデメリットを洗い出す。
+2. 次に、テクノロジーの進化がそれをどう変えるかを予測する。
+3. 最後に、未来の理想的な働き方について結論をまとめる。</code></pre>
+                        </div>
+                    </section>
+
+                    <section id="brackets" class="bg-white p-8 rounded-xl shadow-md">
+                        <h2 class="text-3xl font-mono font-bold text-teal-600 mb-3">`[] {}` (括弧)</h2>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">役割：変数やデータ構造の指定</h3>
+                        <p class="text-slate-600 mb-4">プロンプトをテンプレート化したり、複雑なデータ形式を扱ったりする際に役立ちます。</p>
+                         <div class="space-y-4">
+                            <div class="code-block">
+                                <p class="font-semibold text-slate-700 mb-2">例1：テンプレート化 `[]`</p>
+                                <button class="copy-button">コピー</button>
+                                <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown">以下のテンプレートを使って、商品の説明文を作成してください。
+
+商品名：[商品名]
+ターゲット：[ターゲット層]
+伝えたい魅力：[商品の魅力]</code></pre>
+                            </div>
+                            <div class="code-block">
+                                <p class="font-semibold text-slate-700 mb-2">例2：データ構造の指定 `{}`</p>
+                                <button class="copy-button">コピー</button>
+                                <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown">日本の主要都市について、以下の形式のオブジェクトを3つ作成してください。
+{ "city": "都市名", "population": "人口", "specialty": "名物" }</code></pre>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const copyButtons = document.querySelectorAll('.copy-button');
+            copyButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const codeBlock = button.nextElementSibling;
+                    const textToCopy = codeBlock.innerText;
+
+                    const tempTextarea = document.createElement('textarea');
+                    tempTextarea.value = textToCopy;
+                    document.body.appendChild(tempTextarea);
+                    tempTextarea.select();
+                    try {
+                        document.execCommand('copy');
+                        button.textContent = 'コピー完了！';
+                    } catch (err) {
+                        console.error('コピーに失敗しました', err);
+                        button.textContent = '失敗';
+                    }
+                    document.body.removeChild(tempTextarea);
+
+                    setTimeout(() => {
+                        button.textContent = 'コピー';
+                    }, 2000);
+                });
+            });
+
+            const sections = document.querySelectorAll('main section');
+            const navLinks = document.querySelectorAll('#sidebar-nav a');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    navLinks.forEach(navLink => navLink.classList.remove('active'));
+                    event.currentTarget.classList.add('active');
+
+                    const targetId = event.currentTarget.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+
+                    if(targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+// ... existing code ... -->
+
