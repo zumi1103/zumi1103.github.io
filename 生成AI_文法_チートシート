@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIプロンプト作成チートシート</title>
+    <title>生成AI_文法_チートシート</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chosen Palette: Calm Harmony (Light neutrals with a muted teal accent) -->
     <!-- Application Structure Plan: A single-page application with a fixed sidebar for quick navigation and a main content area displaying each cheat sheet section as a distinct card. This structure is chosen over a simple long page to provide an "at-a-glance" index via the sidebar, making it function as a quick-reference tool. Key interactions include smooth scrolling from the navigation and a "copy to clipboard" button for each code example to enhance utility. -->
@@ -282,4 +282,5 @@ def fibonacci(n):
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
 // ... existing code ... -->
+
 
