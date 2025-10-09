@@ -53,6 +53,7 @@
                     <li><a href="#tag" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">`<tag>` (タグ)</a></li>
                     <li><a href="#ordered-list" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">`1. 2.` (番号リスト)</a></li>
                     <li><a href="#brackets" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">`[] {}` (括弧)</a></li>
+                    <li><a href="#placeholders" class="sidebar-link block px-4 py-2 text-slate-600 rounded-md hover:bg-slate-100">'{}' '...' (プレースホルダー)</a></li>
                 </ul>
             </nav>
         </aside>
@@ -226,6 +227,31 @@ def fibonacci(n):
                         </div>
                     </section>
 
+                    <section id="placeholders" class="bg-white p-8 rounded-xl shadow-md">
+                        <h2 class="text-3xl font-mono font-bold text-teal-600 mb-3">'{}' '...' (プレースホルダー)</h2>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-2">役割：変数入力と任意入力の指示</h3>
+                        <p class="text-slate-600 mb-4">`{}`はユーザーが具体的な内容を補完する変数部分を、`'...'`はAIやユーザーが自由に記述・補完する部分を示すのに使います。これにより、プロンプトのテンプレートをより柔軟に作成できます。</p>
+                        <div class="space-y-4">
+                           <div class="code-block">
+                               <p class="font-semibold text-slate-700 mb-2">例1：質問内容の指定 `{}`</p>
+                               <button class="copy-button">コピー</button>
+                               <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown">以下の質問に答えてください。
+
+{ここに質問を入力してください}</code></pre>
+                           </div>
+                           <div class="code-block">
+                               <p class="font-semibold text-slate-700 mb-2">例2：自由記述の指示 `'...'`</p>
+                               <button class="copy-button">コピー</button>
+                               <pre class="bg-slate-100 p-4 rounded-lg text-slate-800 overflow-x-auto"><code class="language-markdown">以下の対話形式のテキストを完成させてください。
+
+ユーザー: こんにちは！今日の天気はどうですか？
+AI: こんにちは！ '{ここに今日の天気に関する応答が入ります}'
+ユーザー: なるほど、ありがとうございます。 '...'
+AI: どういたしまして。 '...'</code></pre>
+                           </div>
+                       </div>
+                   </section>
+
                 </div>
             </div>
         </main>
@@ -264,9 +290,8 @@ def fibonacci(n):
             navLinks.forEach(link => {
                 link.addEventListener('click', (event) => {
                     event.preventDefault();
-                    navLinks.forEach(navLink => navLink.classList.remove('active'));
-                    event.currentTarget.classList.add('active');
-
+                    // This click handling is primarily for smooth scrolling and active state.
+                    // The IntersectionObserver will handle the active state on scroll.
                     const targetId = event.currentTarget.getAttribute('href');
                     const targetElement = document.querySelector(targetId);
 
@@ -281,6 +306,24 @@ def fibonacci(n):
             
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-// ... existing code ... -->
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, {
+                rootMargin: '-50% 0px -50% 0px', // Activate when section is in the middle of the viewport
+                threshold: 0
+            });
 
-
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+    </script>
+</body>
+</html>
