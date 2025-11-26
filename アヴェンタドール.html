@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lamborghini Aventador - Digital Catalog</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/black.min.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;400;700&family=Zen+Old+Mincho:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- Base Settings --- */
+        :root {
+            --accent-color: #D32F2F; /* Deep Red */
+            --text-main: #f0f0f0;
+            --text-sub: #a0a0a0;
+            --bg-dark: #0b0b0b;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            font-family: 'Zen Old Mincho', serif;
+            color: var(--text-main);
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* --- Reveal.js Overrides --- */
+        .reveal .slides section {
+            padding: 0;
+            margin: 0;
+            height: 100vh;
+            text-align: left; /* Reset default center */
+        }
+        
+        .reveal .controls {
+            color: #fff !important;
+            right: 20px;
+            bottom: 20px;
+        }
+
+        /* --- Grid Layout System --- */
+        .slide-container {
+            display: grid;
+            width: 100vw;
+            height: 100vh;
+            grid-template-columns: 1.2fr 0.8fr; /* Image wider */
+        }
+
+        /* Left: Visual Area */
+        .visual-area {
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            overflow: hidden;
+        }
+        
+        .visual-area::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0; left: 0;
+            background: linear-gradient(90deg, rgba(0,0,0,0.3) 0%, rgba(11,11,11,1) 100%);
+        }
+
+        /* Right: Content Area */
+        .content-area {
+            padding: 60px 60px 100px 40px; /* Bottom padding for arrows */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background-color: var(--bg-dark);
+            overflow-y: auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* --- Typography --- */
+        h1, h2, h3 {
+            font-family: 'Zen Old Mincho', serif;
+            font-weight: 900;
+            line-height: 1.2;
+            letter-spacing: 0.05em;
+            margin-bottom: 30px;
+            color: #fff;
+            text-transform: none; /* Override Reveal defaults */
+        }
+
+        h2 {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            border-left: 4px solid var(--accent-color);
+            padding-left: 20px;
+        }
+
+        p {
+            font-family: 'Zen Old Mincho', serif;
+            font-size: clamp(0.9rem, 1.2vw, 1.1rem);
+            line-height: 2.2;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        .english-sub {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            display: block;
+            font-weight: 700;
+        }
+
+        .spec-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 40px;
+            font-family: 'Montserrat', sans-serif;
+        }
+        .spec-item small {
+            display: block;
+            color: var(--text-sub);
+            font-size: 0.7rem;
+            margin-bottom: 5px;
+        }
+        .spec-item strong {
+            font-size: 1.5rem;
+            color: #fff;
+            font-weight: 400;
+        }
+
+        /* --- Navigation Menu (Hamburger) --- */
+        .menu-btn {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            z-index: 1000;
+            cursor: pointer;
+            font-size: 24px;
+            color: #fff;
+            mix-blend-mode: difference;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100vh;
+            background: rgba(11, 11, 11, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 80px 40px;
+            border-right: 1px solid #333;
+        }
+
+        .sidebar.active {
+            transform: translateX(0);
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .sidebar li {
+            margin-bottom: 25px;
+        }
+
+        .sidebar a {
+            color: #888;
+            text-decoration: none;
+            font-family: 'Zen Old Mincho', serif;
+            font-size: 1.2rem;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar a:hover {
+            color: #fff;
+            padding-left: 10px;
+        }
+        
+        .logo-small {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            font-size: 0.8rem;
+            z-index: 100;
+            opacity: 0.7;
+        }
+
+        /* --- Responsive Mobile --- */
+        @media (max-width: 768px) {
+            .slide-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 45vh 55vh;
+            }
+            .visual-area::after {
+                background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(11,11,11,1) 100%);
+            }
+            .content-area {
+                padding: 30px 25px 80px 25px;
+            }
+            h2 {
+                margin-top: 0;
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="menu-btn" onclick="toggleMenu()">☰</div>
+    <div class="logo-small">AVENTADOR</div>
+
+    <nav class="sidebar" id="sidebar">
+        <ul>
+            <li><a href="#" onclick="Reveal.slide(0); toggleMenu();">01. 表紙</a></li>
+            <li><a href="#" onclick="Reveal.slide(1); toggleMenu();">02. 伝説の継承</a></li>
+            <li><a href="#" onclick="Reveal.slide(2); toggleMenu();">03. 空力デザイン</a></li>
+            <li><a href="#" onclick="Reveal.slide(3); toggleMenu();">04. V12エンジン</a></li>
+            <li><a href="#" onclick="Reveal.slide(4); toggleMenu();">05. インテリア</a></li>
+            <li><a href="#" onclick="Reveal.slide(5); toggleMenu();">06. 主要諸元</a></li>
+        </ul>
+    </nav>
+
+    <div class="reveal">
+        <div class="slides">
+
+            <section>
+                <div class="slide-container">
+                    <div class="visual-area" style="background-image: url('https://image.pollinations.ai/prompt/Lamborghini%20Aventador%20SVJ%20matte%20black%20front%20view%20low%20angle%20cinematic%20lighting%20dark%20studio%20minimalist%204k?width=1920&height=1080&model=flux&nologo=true&seed=101');"></div>
+                    <div class="content-area">
+                        <span class="english-sub">The Icon</span>
+                        <h2>Time becomes<br>Timeless.</h2>
+                        <p>伝説は、決して色褪せない。<br>
+                        その姿が現れた瞬間、時間は止まり、<br>
+                        空間は支配される。</p>
+                        <p>ランボルギーニ アヴェンタドール。<br>
+                        それは、ただのスーパーカーではない。<br>
+                        未来へ突き進む、荒ぶる魂の結晶。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div class="slide-container">
+                    <div class="visual-area" style="background-image: url('https://image.pollinations.ai/prompt/Abstract%20artistic%20silhouette%20of%20a%20raging%20bull%20and%20lamborghini%20lines%20dark%20background%20smoke%20red%20accents?width=1920&height=1080&model=flux&nologo=true&seed=102');"></div>
+                    <div class="content-area">
+                        <span class="english-sub">The DNA</span>
+                        <h2>本能を揺さぶる、<br>猛牛の系譜。</h2>
+                        <p>ミウラから始まり、カウンタックで確立された「ガンディーニ・ライン」。<br>
+                        その遺伝子は、アヴェンタドールにも脈々と受け継がれている。</p>
+                        <p>妥協なきプロポーションと、<br>
+                        見る者の心臓を鷲掴みにする圧倒的な存在感。<br>
+                        これは歴史への敬意であり、革新への挑戦状だ。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div class="slide-container">
+                    <div class="visual-area" style="background-image: url('https://image.pollinations.ai/prompt/Close%20up%20detail%20of%20Lamborghini%20Aventador%20air%20intake%20sharp%20geometric%20lines%20carbon%20fiber%20texture%20studio%20lighting?width=1920&height=1080&model=flux&nologo=true&seed=103');"></div>
+                    <div class="content-area">
+                        <span class="english-sub">Aerodynamics</span>
+                        <h2>風を切り裂く、<br>究極の機能美。</h2>
+                        <p>すべてのライン、すべての曲面に意味がある。<br>
+                        航空力学からインスパイアされた鋭角的なフォルムは、<br>
+                        単なる装飾ではない。</p>
+                        <p>高速域でのダウンフォースを最大化し、<br>
+                        空気抵抗を推進力へと変換する。<br>
+                        機能が極まった先にのみ宿る、冷徹なまでの美しさ。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div class="slide-container">
+                    <div class="visual-area" style="background-image: url('https://image.pollinations.ai/prompt/Lamborghini%20V12%20engine%20close%20up%20metallic%20mechanical%20details%20dark%20moody%20lighting%20high%20contrast?width=1920&height=1080&model=flux&nologo=true&seed=104');"></div>
+                    <div class="content-area">
+                        <span class="english-sub">The V12 Heart</span>
+                        <h2>背後で奏でる、<br>12気筒の狂詩曲。</h2>
+                        <p>電動化が進む現代において、<br>
+                        自然吸気V12エンジンは、もはや芸術品と呼べる。</p>
+                        <p>8,500rpmまで突き抜ける咆哮。<br>
+                        背中を蹴飛ばされるような加速感。<br>
+                        右足の動きに直結する、有機的な鼓動を感じてほしい。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div class="slide-container">
+                    <div class="visual-area" style="background-image: url('https://image.pollinations.ai/prompt/Lamborghini%20Aventador%20cockpit%20interior%20driver%20perspective%20alcantara%20red%20stitching%20fighter%20jet%20buttons%20night%20city%20lights%20blur?width=1920&height=1080&model=flux&nologo=true&seed=105');"></div>
+                    <div class="content-area">
+                        <span class="english-sub">Cockpit</span>
+                        <h2>世界と隔絶された、<br>特等席。</h2>
+                        <p>シザードアを跳ね上げ、シートに身を沈める。<br>
+                        そこは、戦闘機のコックピットさながらの空間。</p>
+                        <p>アルカンターラとフォージドコンポジットの感触。<br>
+                        赤いフラップの下にあるスタートボタンを押した瞬間、<br>
+                        あなたは日常から解き放たれる。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div class="slide-container">
+                    <div class="visual-area" style="background-image: url('https://image.pollinations.ai/prompt/Lamborghini%20Aventador%20rear%20view%20glowing%20Y-shaped%20taillights%20dark%20cinematic%20smoke%20exhaust%20heat?width=1920&height=1080&model=flux&nologo=true&seed=106');"></div>
+                    <div class="content-area">
+                        <span class="english-sub">Specification</span>
+                        <h2>物理法則への<br>あくなき挑戦。</h2>
+                        <p>数値は、情熱の結果に過ぎない。<br>
+                        しかし、その数値こそが頂点の証明でもある。</p>
+                        
+                        <div class="spec-grid">
+                            <div class="spec-item">
+                                <small>ENGINE</small>
+                                <strong>6.5L V12 NA</strong>
+                            </div>
+                            <div class="spec-item">
+                                <small>MAX POWER</small>
+                                <strong>770 CV</strong>
+                            </div>
+                            <div class="spec-item">
+                                <small>0-100km/h</small>
+                                <strong>2.8 sec</strong>
+                            </div>
+                            <div class="spec-item">
+                                <small>TOP SPEED</small>
+                                <strong>350+ km/h</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script>
+        // Initialize Reveal.js with Full Screen & Responsive settings
+        Reveal.initialize({
+            controls: true,
+            progress: true,
+            center: true,
+            hash: true,
+            width: "100%",   // Force full width
+            height: "100%",  // Force full height
+            margin: 0,       // No margin around slides
+            minScale: 1,
+            maxScale: 1,
+            transition: 'fade', // Elegant fade transition
+            backgroundTransition: 'fade'
+        });
+
+        // Hamburger Menu Logic
+        function toggleMenu() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>
