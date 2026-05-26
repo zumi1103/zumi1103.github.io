@@ -3,310 +3,437 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chrome拡張機能アイコンジェネレーター</title>
+    <title>My Dev Tools</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
     <style>
+        /* --- カラースキーム（CSS変数） --- */
         :root {
-            --primary-color: #333;
+            /* ダークモード（デフォルト） */
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --card-bg: #1e1e1e;
+            --border-color: #444;
             --accent-color: #5c6bc0;
-            --bg-color: #f8f9fa;
-            --card-bg: #ffffff;
+            --hover-bg: #2c3e50;
+            --input-bg: #1e1e1e;
+            --sub-text: #aaa;
         }
 
+        body.light-mode {
+            /* ライトモード */
+            --bg-color: #f8f9fa;
+            --text-color: #333333;
+            --card-bg: #ffffff;
+            --border-color: #ddd;
+            --accent-color: #5c6bc0;
+            --hover-bg: #e1f0fa;
+            --input-bg: #f9f9f9;
+            --sub-text: #666;
+        }
+
+        /* --- 全体設定 --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: var(--bg-color);
-            color: var(--primary-color);
+            color: var(--text-color);
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
             display: flex;
-            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- ヘッダー領域 --- */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
         }
 
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 1.5rem;
+        .menu-btn, .theme-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
         }
+        .menu-btn:hover, .theme-btn:hover { background-color: var(--border-color); }
 
-        .container {
-            max-width: 800px;
+        /* --- サイドバー（ハンバーガーメニュー） --- */
+        .sidebar {
+            position: fixed;
+            top: 60px;
+            left: -250px; /* 初期状態は隠す */
+            width: 250px;
+            height: calc(100vh - 60px);
+            background-color: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            transition: left 0.3s ease;
+            z-index: 900;
+            padding-top: 20px;
+        }
+        .sidebar.open { left: 0; }
+
+        .nav-item {
+            padding: 15px 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+        .nav-item:hover, .nav-item.active { background-color: var(--hover-bg); }
+
+        /* --- メインコンテンツ領域 --- */
+        .main-content {
+            margin-top: 60px;
+            padding: 20px;
             width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+            box-sizing: border-box;
+            transition: margin-left 0.3s ease;
+        }
+        /* サイドバーが開いている時、メインを右にずらす（PC画面用） */
+        @media (min-width: 768px) {
+            body.sidebar-open .main-content { margin-left: 250px; width: calc(100% - 250px); }
         }
 
-        /* カードスタイル */
+        .view-section { display: none; max-width: 800px; margin: 0 auto; }
+        .view-section.active { display: block; }
+        h1 { text-align: center; margin-bottom: 20px; font-size: 1.5rem; }
+        p.desc { text-align: center; color: var(--sub-text); margin-bottom: 20px; }
+
+        /* --- 共通コンポーネント（ボタン、テキストエリア、カード） --- */
+        button.action-btn {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            background-color: var(--border-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        button.action-btn:hover:not(:disabled) { background-color: var(--text-color); color: var(--bg-color); }
+        button.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
         .card {
             background: var(--card-bg);
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             padding: 20px;
-            border: 1px solid #eee;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        .card-header { font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+
+        /* --- My Repomix 固有スタイル --- */
+        #dropZoneRepo {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            background-color: var(--card-bg);
+            transition: all 0.3s ease;
+        }
+        #dropZoneRepo.dragover { background-color: var(--hover-bg); border-color: var(--accent-color); }
+        textarea {
+            width: 100%; height: 300px; margin-top: 10px; font-family: monospace;
+            background-color: var(--input-bg); color: var(--text-color);
+            border: 1px solid var(--border-color); padding: 10px; box-sizing: border-box;
         }
 
-        .card-header {
-            font-weight: bold;
-            font-size: 1.1rem;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        /* アップロードエリア */
+        /* --- My Icon 固有スタイル --- */
         .upload-area {
-            border: 2px dashed #ddd;
+            border: 2px dashed var(--border-color);
             border-radius: 8px;
             padding: 40px;
             text-align: center;
             cursor: pointer;
+            background-color: var(--card-bg);
             transition: all 0.3s;
-            background-color: #fafafa;
         }
-
-        .upload-area:hover {
-            border-color: var(--accent-color);
-            background-color: #f0f2ff;
-        }
-
-        .upload-btn {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-            display: inline-block;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        /* 生成されたアイコン表示エリア */
-        .preview-container {
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-end;
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .icon-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .icon-box img {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .size-label {
-            font-size: 0.85rem;
-            color: #666;
-            margin-bottom: 5px;
-            border-bottom: 2px solid #ddd;
-            width: 100%;
-            padding-bottom: 5px;
-        }
-
-        /* ダウンロードボタン */
-        .download-all-btn {
-            background-color: #333;
-            color: white;
-            border: none;
-            width: 100%;
-            padding: 15px;
-            border-radius: 6px;
-            font-size: 1rem;
-            cursor: pointer;
-            margin-top: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .download-all-btn:hover {
-            background-color: #000;
-        }
-
-        .download-all-btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        /* コード表示エリア */
-        pre {
-            background-color: #2d2d2d;
-            color: #f8f8f2;
-            padding: 15px;
-            border-radius: 6px;
-            overflow-x: auto;
-            font-size: 0.9rem;
-            font-family: Consolas, Monaco, "Andale Mono", monospace;
-        }
-
-        /* ユーティリティ */
-        .hidden {
-            display: none;
-        }
-
+        .upload-area:hover, .upload-area.dragover { border-color: var(--accent-color); background-color: var(--hover-bg); }
+        input[type="file"] { display: none; }
+        
+        .preview-container { display: flex; justify-content: space-around; align-items: flex-end; margin-top: 20px; text-align: center; }
+        .icon-box { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .icon-box img { border: 1px solid var(--border-color); border-radius: 4px; }
+        .size-label { font-size: 0.85rem; color: var(--sub-text); margin-bottom: 5px; border-bottom: 2px solid var(--border-color); width: 100%; padding-bottom: 5px; }
+        
+        pre { background-color: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 0.9rem; font-family: Consolas, monospace; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <h1>Chrome拡張機能アイコンジェネレーター</h1>
+    <header class="header">
+        <button class="menu-btn" id="menuBtn" title="メニュー">☰</button>
+        <div style="font-weight: bold; font-size: 1.2rem;">My Dev Tools</div>
+        <button class="theme-btn" id="themeToggle" title="テーマ切り替え">☀️</button>
+    </header>
 
-    <div class="container">
-        <div class="card">
-            <div class="card-header">画像をアップロード</div>
-            <p style="font-size: 0.9rem; color: #666;">既存の画像からアイコンを作成します</p>
-            
-            <div class="upload-area" id="dropArea">
-                <div id="previewArea">
-                    <div style="font-size: 3rem; color: #ccc;">📷</div>
-                    <label for="fileInput" class="upload-btn">画像をアップロード</label>
-                </div>
-                <input type="file" id="fileInput" accept="image/*">
-            </div>
-        </div>
+    <nav class="sidebar" id="sidebar">
+        <div class="nav-item active" data-target="repomix-view">My Repomix</div>
+        <div class="nav-item" data-target="icon-view">My Icon</div>
+    </nav>
 
-        <div class="card">
-            <div class="card-header">生成されたアイコン</div>
-            <p style="font-size: 0.9rem; color: #666;">3つのサイズのアイコンが自動生成されます</p>
+    <main class="main-content" id="mainContent">
+        
+        <section id="repomix-view" class="view-section active">
+            <h1>📁 My Repomix</h1>
+            <p class="desc">開発フォルダをドロップして、Gemini用のテキストに変換します。</p>
 
-            <div class="preview-container">
-                <div class="icon-box">
-                    <div class="size-label">16×16</div>
-                    <img id="img16" src="" alt="16px" class="hidden">
-                    <canvas id="canvas16" width="16" height="16" style="display:none;"></canvas>
-                </div>
-                <div class="icon-box">
-                    <div class="size-label">48×48</div>
-                    <img id="img48" src="" alt="48px" class="hidden">
-                    <canvas id="canvas48" width="48" height="48" style="display:none;"></canvas>
-                </div>
-                <div class="icon-box">
-                    <div class="size-label">128×128</div>
-                    <img id="img128" src="" alt="128px" class="hidden">
-                    <canvas id="canvas128" width="128" height="128" style="display:none;"></canvas>
-                </div>
+            <div id="dropZoneRepo">
+                ここにフォルダをドラッグ＆ドロップ<br>
+                <button class="action-btn" id="selectBtnRepo" style="margin-top:15px; font-size:14px;">または フォルダを選択</button>
+                <input type="file" id="folderInputRepo" webkitdirectory directory multiple>
             </div>
 
-            <button id="downloadAllBtn" class="download-all-btn" disabled>
-                📥 すべてのアイコンをダウンロード
-            </button>
-        </div>
+            <button class="action-btn" id="copyBtnRepo" style="width:100%; margin-bottom:10px;" disabled>📋 結果をコピーしてGeminiを開く</button>
+            <textarea id="outputRepo" placeholder="ここにまとまったコードが表示されます..." readonly></textarea>
+        </section>
 
-        <div class="card">
-            <div class="card-header">マニフェストファイルの例</div>
-            <pre>
-{
-  "manifest_version": 3,
-  "name": "My Extension",
-  "version": "1.0",
-  "description": "A simple Chrome extension",
+
+        <section id="icon-view" class="view-section">
+            <h1>🎨 My Icon</h1>
+            <p class="desc">画像をアップロードして、拡張機能用のアイコン(16, 48, 128px)を生成します。</p>
+
+            <div class="card">
+                <div class="card-header">画像をアップロード</div>
+                <div class="upload-area" id="dropAreaIcon">
+                    <div id="previewAreaIcon">
+                        <div style="font-size: 3rem; color: var(--sub-text);">📷</div>
+                        <label for="fileInputIcon" class="action-btn" style="display:inline-block; margin-top:10px;">画像を選択</label>
+                    </div>
+                    <input type="file" id="fileInputIcon" accept="image/*">
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">生成されたアイコン</div>
+                <div class="preview-container">
+                    <div class="icon-box">
+                        <div class="size-label">16×16</div>
+                        <img id="img16" src="" alt="16px" class="hidden">
+                        <canvas id="canvas16" width="16" height="16" style="display:none;"></canvas>
+                    </div>
+                    <div class="icon-box">
+                        <div class="size-label">48×48</div>
+                        <img id="img48" src="" alt="48px" class="hidden">
+                        <canvas id="canvas48" width="48" height="48" style="display:none;"></canvas>
+                    </div>
+                    <div class="icon-box">
+                        <div class="size-label">128×128</div>
+                        <img id="img128" src="" alt="128px" class="hidden">
+                        <canvas id="canvas128" width="128" height="128" style="display:none;"></canvas>
+                    </div>
+                </div>
+                <button id="downloadAllBtn" class="action-btn" style="width:100%; margin-top:20px;" disabled>📥 ZIPでダウンロード</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">manifest.json 記述例</div>
+                <pre>{
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   }
 }</pre>
-        </div>
-    </div>
+            </div>
+        </section>
+    </main>
 
     <script>
-        // 要素の取得
-        const fileInput = document.getElementById('fileInput');
-        const dropArea = document.getElementById('dropArea');
-        const downloadBtn = document.getElementById('downloadAllBtn');
+        /* ==========================================
+           1. 共通UIロジック (テーマ & メニュー)
+        ========================================== */
+        const body = document.body;
+        const themeToggle = document.getElementById('themeToggle');
+        const menuBtn = document.getElementById('menuBtn');
+        const sidebar = document.getElementById('sidebar');
+        const navItems = document.querySelectorAll('.nav-item');
+        const viewSections = document.querySelectorAll('.view-section');
+
+        // テーマ切り替え
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('light-mode');
+            themeToggle.textContent = body.classList.contains('light-mode') ? '🌙' : '☀️';
+        });
+
+        // メニュー開閉
+        menuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            body.classList.toggle('sidebar-open');
+        });
+
+        // タブ(ビュー)切り替え
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // ナビゲーションのアクティブ状態更新
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+                
+                // ビューの切り替え
+                const targetId = item.getAttribute('data-target');
+                viewSections.forEach(section => {
+                    section.classList.remove('active');
+                    if(section.id === targetId) section.classList.add('active');
+                });
+
+                // モバイルなど画面が狭い場合は選択後にメニューを閉じる
+                if (window.innerWidth < 768) {
+                    sidebar.classList.remove('open');
+                    body.classList.remove('sidebar-open');
+                }
+            });
+        });
+
+
+        /* ==========================================
+           2. My Repomix 固有ロジック
+        ========================================== */
+        const dropZoneRepo = document.getElementById('dropZoneRepo');
+        const folderInputRepo = document.getElementById('folderInputRepo');
+        const selectBtnRepo = document.getElementById('selectBtnRepo');
+        const outputRepo = document.getElementById('outputRepo');
+        const copyBtnRepo = document.getElementById('copyBtnRepo');
+        const ignorePaths = ['.git', 'node_modules', '.png', '.jpg', '.DS_Store'];
+
+        selectBtnRepo.addEventListener('click', () => folderInputRepo.click());
         
-        // サイズ定義
-        const sizes = [16, 48, 128];
-
-        // ファイル選択時のイベント
-        fileInput.addEventListener('change', function(e) {
-            handleFile(e.target.files[0]);
+        folderInputRepo.addEventListener('change', (event) => {
+            const files = Array.from(event.target.files);
+            files.forEach(f => f.customPath = f.webkitRelativePath);
+            processRepoFiles(files);
         });
 
-        // ドラッグ＆ドロップのイベント
-        dropArea.addEventListener('dragover', (e) => {
+        dropZoneRepo.addEventListener('dragover', (e) => { e.preventDefault(); dropZoneRepo.classList.add('dragover'); });
+        dropZoneRepo.addEventListener('dragleave', () => { dropZoneRepo.classList.remove('dragover'); });
+        dropZoneRepo.addEventListener('drop', async (e) => {
             e.preventDefault();
-            dropArea.style.backgroundColor = '#f0f2ff';
-        });
-        dropArea.addEventListener('dragleave', () => {
-            dropArea.style.backgroundColor = '#fafafa';
-        });
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropArea.style.backgroundColor = '#fafafa';
-            handleFile(e.dataTransfer.files[0]);
-        });
-
-        // ファイル処理のメイン関数
-        function handleFile(file) {
-            if (!file || !file.type.startsWith('image/')) {
-                alert('画像ファイルを選択してください');
-                return;
+            dropZoneRepo.classList.remove('dragover');
+            const items = e.dataTransfer.items;
+            if (!items) return;
+            outputRepo.value = "読み込み中...\n";
+            let files = [];
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i].webkitGetAsEntry();
+                if (item) await traverseFileTree(item, files);
             }
+            processRepoFiles(files);
+        });
 
+        async function traverseFileTree(item, files) {
+            if (item.isFile) {
+                const file = await new Promise(resolve => item.file(resolve));
+                file.customPath = item.fullPath.substring(1);
+                files.push(file);
+            } else if (item.isDirectory) {
+                const dirReader = item.createReader();
+                let entries = [], readResult = [];
+                do {
+                    readResult = await new Promise(resolve => dirReader.readEntries(resolve));
+                    entries.push(...readResult);
+                } while (readResult.length > 0);
+                for (const entry of entries) await traverseFileTree(entry, files);
+            }
+        }
+
+        async function processRepoFiles(files) {
+            if (files.length === 0) { outputRepo.value = "ファイルが見つかりません。"; return; }
+            outputRepo.value = "読み込み中...\n";
+            let combinedText = "<repository>\n\n";
+            for (const file of files) {
+                if (ignorePaths.some(ignore => file.customPath.includes(ignore))) continue;
+                try {
+                    const text = await file.text();
+                    combinedText += `<file path="${file.customPath}">\n${text}\n</file>\n\n`;
+                } catch (e) { console.warn(`エラー: ${file.customPath}`, e); }
+            }
+            combinedText += "</repository>";
+            outputRepo.value = combinedText;
+            copyBtnRepo.disabled = false;
+        }
+
+        copyBtnRepo.addEventListener('click', () => {
+            outputRepo.select();
+            document.execCommand('copy');
+            window.open('https://gemini.google.com/app', '_blank');
+        });
+
+
+        /* ==========================================
+           3. My Icon 固有ロジック
+        ========================================== */
+        const fileInputIcon = document.getElementById('fileInputIcon');
+        const dropAreaIcon = document.getElementById('dropAreaIcon');
+        const downloadBtnIcon = document.getElementById('downloadAllBtn');
+        const iconSizes = [16, 48, 128];
+
+        fileInputIcon.addEventListener('change', (e) => handleIconFile(e.target.files[0]));
+
+        dropAreaIcon.addEventListener('dragover', (e) => { e.preventDefault(); dropAreaIcon.classList.add('dragover'); });
+        dropAreaIcon.addEventListener('dragleave', () => { dropAreaIcon.classList.remove('dragover'); });
+        dropAreaIcon.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropAreaIcon.classList.remove('dragover');
+            handleIconFile(e.dataTransfer.files[0]);
+        });
+
+        function handleIconFile(file) {
+            if (!file || !file.type.startsWith('image/')) { alert('画像ファイルを選択してください'); return; }
             const reader = new FileReader();
-            reader.onload = function(event) {
+            reader.onload = (event) => {
                 const img = new Image();
-                img.onload = function() {
-                    generateIcons(img);
-                };
+                img.onload = () => generateIcons(img);
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        // アイコン生成関数
         function generateIcons(sourceImage) {
-            sizes.forEach(size => {
+            iconSizes.forEach(size => {
                 const canvas = document.getElementById(`canvas${size}`);
                 const ctx = canvas.getContext('2d');
                 const imgTag = document.getElementById(`img${size}`);
-
-                // キャンバスをクリアして描画
+                
                 ctx.clearRect(0, 0, size, size);
                 ctx.drawImage(sourceImage, 0, 0, size, size);
-
-                // 画像タグに表示
+                
                 imgTag.src = canvas.toDataURL('image/png');
                 imgTag.classList.remove('hidden');
                 imgTag.style.width = `${size}px`;
                 imgTag.style.height = `${size}px`;
             });
-
-            // ダウンロードボタンを有効化
-            downloadBtn.disabled = false;
+            downloadBtnIcon.disabled = false;
         }
 
-        // 一括ダウンロード処理
-        downloadBtn.addEventListener('click', function() {
+        downloadBtnIcon.addEventListener('click', () => {
             const zip = new JSZip();
             const folder = zip.folder("icons");
-
-            sizes.forEach(size => {
+            iconSizes.forEach(size => {
                 const canvas = document.getElementById(`canvas${size}`);
-                // Base64データから "data:image/png;base64," の部分を削除
                 const imageData = canvas.toDataURL('image/png').split(',')[1];
-                
-                // ファイル名を icon16.png 等に変更（ハイフン除去）
                 folder.file(`icon${size}.png`, imageData, {base64: true});
             });
-
-            // ZIP生成とダウンロード実行
-            zip.generateAsync({type:"blob"}).then(function(content) {
+            zip.generateAsync({type:"blob"}).then(content => {
                 saveAs(content, "chrome-extension-icons.zip");
             });
         });
