@@ -118,7 +118,7 @@
         p.desc { text-align: center; color: var(--sub-text); margin-bottom: 20px; }
 
         /* --- 共通コンポーネント（ボタン、テキストエリア、カード） --- */
-        button.action-btn {
+        button.action-btn, label.action-label {
             padding: 10px 20px;
             cursor: pointer;
             font-size: 16px;
@@ -128,8 +128,10 @@
             border-radius: 4px;
             transition: all 0.3s;
             font-weight: bold;
+            display: inline-block;
+            text-align: center;
         }
-        button.action-btn:hover:not(:disabled) { background-color: var(--text-color); color: var(--bg-color); }
+        button.action-btn:hover:not(:disabled), label.action-label:hover { background-color: var(--text-color); color: var(--bg-color); }
         button.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .card {
@@ -164,7 +166,6 @@
             border-radius: 8px;
             padding: 40px;
             text-align: center;
-            cursor: pointer;
             background-color: var(--card-bg);
             transition: all 0.3s;
         }
@@ -219,7 +220,7 @@
                 <div class="upload-area" id="dropAreaIcon">
                     <div id="previewAreaIcon">
                         <div style="font-size: 3rem; color: var(--sub-text);">📷</div>
-                        <label for="fileInputIcon" class="action-btn" style="display:inline-block; margin-top:10px;">画像を選択</label>
+                        <label for="fileInputIcon" class="action-label" style="margin-top:10px;">画像を選択</label>
                     </div>
                     <input type="file" id="fileInputIcon" accept="image/*">
                 </div>
@@ -286,18 +287,15 @@
         // タブ(ビュー)切り替え
         navItems.forEach(item => {
             item.addEventListener('click', () => {
-                // ナビゲーションのアクティブ状態更新
                 navItems.forEach(nav => nav.classList.remove('active'));
                 item.classList.add('active');
                 
-                // ビューの切り替え
                 const targetId = item.getAttribute('data-target');
                 viewSections.forEach(section => {
                     section.classList.remove('active');
                     if(section.id === targetId) section.classList.add('active');
                 });
 
-                // モバイルなど画面が狭い場合は選択後にメニューを閉じる
                 if (window.innerWidth < 768) {
                     sidebar.classList.remove('open');
                     body.classList.remove('sidebar-open');
