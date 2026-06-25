@@ -1,4 +1,4 @@
-/* 画面全体の余白をなくす */
+/* 全体のベース設定（🌟背景をダークにしてまぶしさを解消） */
 body, html {
     margin: 0;
     padding: 0;
@@ -7,12 +7,13 @@ body, html {
     flex-direction: column;
     font-family: sans-serif;
     overflow: hidden;
+    background-color: #1e1e1e; /* VSCodeのエディタと同じ色 */
 }
 
-/* ツールバーの装飾 */
+/* ツールバー */
 #toolbar {
     padding: 10px 15px;
-    background-color: #252526; /* VSCode風のダークカラー */
+    background-color: #252526;
     color: #cccccc;
     display: flex;
     align-items: center;
@@ -22,62 +23,76 @@ body, html {
 #openBtn {
     padding: 5px 15px;
     cursor: pointer;
-    background-color: #0e639c; /* VSCodeのボタンカラー */
+    background-color: #0e639c;
     color: white;
     border: none;
     border-radius: 2px;
+    white-space: nowrap;
 }
 
 #openBtn:hover {
     background-color: #1177bb;
 }
 
-/* エディタ領域を残りの高さ全体に広げる */
-#editor-container {
+/* 🌟追加：メインエリアの構成 */
+#main-area {
     flex-grow: 1;
+    position: relative;
     width: 100%;
 }
 
-/* 🌟ここから追加：保存通知ポップアップのスタイル */
-#toast {
+#editor-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* 🌟追加：ファイルが空の時のUI（ドラッグ＆ドロップ案内） */
+#empty-state {
     position: absolute;
-    bottom: 20px;
-    right: 20px;
-    background-color: #007acc; /* VSCodeブルー */
-    color: white;
-    padding: 10px 20px;
-    border-radius: 4px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1e1e1e;
+    color: #cccccc;
+    z-index: 10; /* エディタの上に表示 */
+}
+
+.empty-state-content {
+    text-align: center;
+    border: 2px dashed #444;
+    padding: 50px 80px;
+    border-radius: 10px;
+    background-color: #252526;
+    pointer-events: none; /* ドロップ操作の邪魔にならないようにする */
+}
+
+.empty-state-content h2 {
+    margin-top: 0;
+    font-weight: normal;
+    color: #d4d4d4;
+}
+
+.empty-state-content p {
+    color: #888;
     font-size: 14px;
-    z-index: 1000; /* エディタの上に表示させる */
-    
-    /* アニメーションの設定 */
-    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* 非表示状態（透明＆少し下にずらしておく） */
-.toast-hidden {
-    opacity: 0;
-    transform: translateY(20px);
-    pointer-events: none; /* クリックの邪魔にならないようにする */
+/* 空画面を隠す用のクラス */
+.hidden {
+    display: none !important;
 }
 
-/* 表示状態（くっきり＆元の位置へ） */
-.toast-show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* 🌟ここから追加：タブ機能のスタイル */
+/* タブ機能のスタイル */
 #tabs-container {
     display: flex;
-    overflow-x: auto; /* タブが増えたら横スクロール可能に */
+    overflow-x: auto;
     gap: 1px;
     flex-grow: 1;
 }
 
 .tab {
-    background-color: #2d2d2d; /* 非アクティブなタブの色 */
+    background-color: #2d2d2d;
     padding: 5px 12px;
     cursor: pointer;
     display: flex;
@@ -94,14 +109,12 @@ body, html {
     background-color: #333333;
 }
 
-/* 選択中のタブのデザイン */
 .tab.active {
-    background-color: #1e1e1e; /* エディタ本体と同じ色にして一体感を出す */
+    background-color: #1e1e1e;
     color: #ffffff;
-    border-top: 2px solid #007acc; /* VSCode風の青いライン */
+    border-top: 2px solid #007acc;
 }
 
-/* タブを閉じる(×)ボタン */
 .tab-close {
     font-size: 14px;
     width: 18px;
@@ -117,10 +130,28 @@ body, html {
     color: white;
 }
 
+/* トースト通知 */
+#toast {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background-color: #007acc;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    font-size: 14px;
+    z-index: 1000;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
 
+.toast-hidden {
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+}
 
-
-
-
-
-
+.toast-show {
+    opacity: 1;
+    transform: translateY(0);
+}
