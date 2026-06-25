@@ -37,3 +37,33 @@ body, html {
     flex-grow: 1;
     width: 100%;
 }
+
+/* 🌟ここから追加：保存通知ポップアップのスタイル */
+#toast {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background-color: #007acc; /* VSCodeブルー */
+    color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    font-size: 14px;
+    z-index: 1000; /* エディタの上に表示させる */
+    
+    /* アニメーションの設定 */
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* 非表示状態（透明＆少し下にずらしておく） */
+.toast-hidden {
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none; /* クリックの邪魔にならないようにする */
+}
+
+/* 表示状態（くっきり＆元の位置へ） */
+.toast-show {
+    opacity: 1;
+    transform: translateY(0);
+}
