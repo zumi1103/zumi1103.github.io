@@ -1,14 +1,23 @@
 let editor;
-// 🌟変更点：複数ファイルを管理するための変数
-let openFiles = {}; // 開いているファイルの情報を保存する辞書 { tabId: { handle, model, name } }
-let currentTabId = null; // 現在画面に表示しているタブのID
-let tabCounter = 0; // タブに一意のIDを付けるためのカウンター
+let openFiles = {}; 
+let currentTabId = null; 
+let tabCounter = 0; 
+
+// 🌟新機能：開いているファイル数に応じて「空画面」と「エディタ」を切り替える関数
+function updateEmptyState() {
+    const emptyState = document.getElementById('empty-state');
+    if (Object.keys(openFiles).length === 0) {
+        emptyState.classList.remove('hidden'); // ファイルが0なら案内を表示
+    } else {
+        emptyState.classList.add('hidden'); // 1つでもあれば隠す
+    }
+}
 
 // --- 1. Monaco Editor の初期化処理 ---
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
 require(['vs/editor/editor.main'], function () {
     editor = monaco.editor.create(document.getElementById('editor-container'), {
-        value: "// ファイルを開いてください\n",
+        value: "",
         language: 'plaintext',
         theme: 'vs-dark',
         automaticLayout: true
@@ -19,67 +28,84 @@ require(['vs/editor/editor.main'], function () {
     });
 });
 
-// --- 2. ファイルを開く処理 ---
+// 🌟新機能：ファイルハンドルを受け取ってエディタで開く共通関数（複数対応用）
+async function openFileFromHandle(handle) {
+    const file = await handle.getFile();
+    const text = await file.text();
+
+    const extMap = {
+        'js': 'javascript', 'json': 'json', 'html': 'html', 'css': 'css',
+        'ps1': 'powershell', 'py': 'python', 'xml': 'xml', 'md': 'markdown',
+        'ts': 'typescript', 'sql': 'sql', 'java': 'java', 'cs': 'csharp',
+        'c': 'c', 'cpp': 'cpp', 'sh': 'shell', 'bat': 'bat'
+    };
+    const ext = file.name.split('.').pop().toLowerCase();
+    const language = extMap[ext] || 'plaintext';
+
+    const model = monaco.editor.createModel(text, language);
+    const tabId = 'tab_' + (++tabCounter);
+    
+    openFiles[tabId] = { handle: handle, model: model, name: file.name };
+
+    createTabUI(tabId, file.name);
+    switchTab(tabId);
+    updateEmptyState(); // 画面状態を更新
+}
+
+// --- 2. ファイルを開く処理（🌟ボタンから複数選択対応） ---
 document.getElementById('openBtn').addEventListener('click', async () => {
     try {
-        const [handle] = await window.showOpenFilePicker();
-        const file = await handle.getFile();
-        const text = await file.text();
-
-        // 言語の判定
-        const extMap = {
-            'js': 'javascript', 'json': 'json', 'html': 'html', 'css': 'css',
-            'ps1': 'powershell', 'py': 'python', 'xml': 'xml', 'md': 'markdown',
-            'ts': 'typescript', 'sql': 'sql', 'java': 'java', 'cs': 'csharp',
-            'c': 'c', 'cpp': 'cpp', 'sh': 'shell', 'bat': 'bat'
-        };
-        const ext = file.name.split('.').pop().toLowerCase();
-        const language = extMap[ext] || 'plaintext';
-
-        // 🌟タブ管理：新しいModelを作り、辞書に保存する
-        const model = monaco.editor.createModel(text, language);
-        const tabId = 'tab_' + (++tabCounter);
-        
-        openFiles[tabId] = {
-            handle: handle,
-            model: model,
-            name: file.name
-        };
-
-        // UI（画面上）にタブを追加して、そのタブに切り替える
-        createTabUI(tabId, file.name);
-        switchTab(tabId);
-
+        // multiple: true で複数ファイル選択を許可
+        const handles = await window.showOpenFilePicker({ multiple: true });
+        for (const handle of handles) {
+            await openFileFromHandle(handle);
+        }
     } catch (err) {
         console.log('ファイルの選択がキャンセルされました', err);
     }
 });
 
-// --- 🌟新機能：タブのUIを作成する関数 ---
+// --- 🌟新機能：ドラッグ＆ドロップ対応（複数対応） ---
+document.body.addEventListener('dragover', (e) => {
+    e.preventDefault(); // ブラウザ標準の動作（画像として開く等）をキャンセル
+});
+
+document.body.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    const items = e.dataTransfer.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file') {
+            // 単なるファイルではなく、上書き保存可能な「ハンドル」として取得
+            const handle = await item.getAsFileSystemHandle();
+            if (handle && handle.kind === 'file') {
+                await openFileFromHandle(handle);
+            }
+        }
+    }
+});
+
+// --- タブUI生成 ---
 function createTabUI(tabId, fileName) {
     const tabsContainer = document.getElementById('tabs-container');
-    
-    // タブの要素を作る
     const tabEl = document.createElement('div');
     tabEl.className = 'tab';
     tabEl.id = tabId;
     
-    // ファイル名部分
     const nameEl = document.createElement('span');
     nameEl.textContent = fileName;
     
-    // 閉じる(×)ボタン
     const closeBtn = document.createElement('span');
     closeBtn.className = 'tab-close';
     closeBtn.textContent = '×';
     
-    // ×ボタンが押された時の処理
     closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // タブ自体のクリックイベントが発動するのを防ぐ
+        e.stopPropagation(); 
         closeTab(tabId);
     });
 
-    // タブ自体がクリックされたら切り替える
     tabEl.addEventListener('click', () => {
         switchTab(tabId);
     });
@@ -89,58 +115,42 @@ function createTabUI(tabId, fileName) {
     tabsContainer.appendChild(tabEl);
 }
 
-// --- 🌟新機能：タブを切り替える関数 ---
+// --- タブ切り替え ---
 function switchTab(tabId) {
     if (!openFiles[tabId]) return;
-
     currentTabId = tabId;
-    
-    // エディタの中身を、選んだタブのModelに差し替える
     editor.setModel(openFiles[tabId].model);
-
-    // 見た目（CSS）のアクティブ状態を更新する
+    
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
 }
 
-// --- 🌟新機能：タブを閉じる関数 ---
+// --- タブ閉じる処理 ---
 function closeTab(tabId) {
-    // Modelのメモリを解放する
     openFiles[tabId].model.dispose();
     delete openFiles[tabId];
+    document.getElementById(tabId).remove();
 
-    // UIからタブを消す
-    const tabEl = document.getElementById(tabId);
-    tabEl.remove();
-
-    // もし今開いているタブを閉じたら、画面をリセットするか別のタブを開く
     if (currentTabId === tabId) {
         currentTabId = null;
-        editor.setModel(null); // エディタを空にする
+        editor.setModel(null); 
         
-        // 残っているタブがあれば、一番最後のタブを開く
         const remainingTabs = Object.keys(openFiles);
         if (remainingTabs.length > 0) {
             switchTab(remainingTabs[remainingTabs.length - 1]);
         }
     }
+    updateEmptyState(); // 🌟追加：全部閉じたかチェックしてUI更新
 }
 
-// --- 3. ファイルを上書き保存する処理 ---
+// --- 3. 保存処理 ---
 async function saveFile() {
-    if (!currentTabId || !openFiles[currentTabId]) {
-        alert('保存するファイルが開かれていません。');
-        return;
-    }
+    if (!currentTabId || !openFiles[currentTabId]) return;
     try {
-        // 現在アクティブなタブの操作権限（ハンドル）を取得
         const handle = openFiles[currentTabId].handle;
         const writable = await handle.createWritable();
-        
-        // エディタの現在の内容を書き込む
         await writable.write(editor.getValue());
         await writable.close();
-
         showToast();
     } catch (err) {
         console.error('保存エラー:', err);
@@ -148,7 +158,7 @@ async function saveFile() {
     }
 }
 
-// --- 4. Ctrl+S の制御 ---
+// --- 4. Ctrl+S 制御 ---
 window.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
@@ -165,5 +175,5 @@ function showToast() {
     }, 3000);
 }
 
-
-
+// 🌟起動時に空画面の表示を判定
+updateEmptyState();
