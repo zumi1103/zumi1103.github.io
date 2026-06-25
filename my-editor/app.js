@@ -20,7 +20,10 @@ require(['vs/editor/editor.main'], function () {
         value: "",
         language: 'plaintext',
         theme: 'vs-dark',
-        automaticLayout: true
+        automaticLayout: true,
+        // 🌟変更点：ショートカットでのズームを有効にする
+        mouseWheelZoom: true,
+        // (参考)Ctrl+-, Ctrl+=, Ctrl+0 のショートカットもMonacoに標準搭載されています
     });
 
     // エディタ内でCtrl+Sが押された時の処理
@@ -28,9 +31,20 @@ require(['vs/editor/editor.main'], function () {
         await saveFile();
     });
 
-    // 🌟エディタ内でAlt+Wが押された時もタブを閉じられるように設定
+    // エディタ内でAlt+Wが押された時もタブを閉じられるように設定
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyW, function() {
         if (currentTabId) closeTab(currentTabId);
+    });
+
+    // 🌟新機能：ズームボタンのイベントハンドラを追加
+    document.getElementById('zoomInBtn').addEventListener('click', () => {
+        editor.getAction('editor.action.fontZoomIn').run();
+    });
+    document.getElementById('zoomOutBtn').addEventListener('click', () => {
+        editor.getAction('editor.action.fontZoomOut').run();
+    });
+    document.getElementById('zoomResetBtn').addEventListener('click', () => {
+        editor.getAction('editor.action.fontZoomReset').run();
     });
 });
 
@@ -143,13 +157,12 @@ function closeTab(tabId) {
     if (!openFiles[tabId]) return;
 
     openFiles[tabId].model.dispose();
-    delete openFiles[openFiles[tabId]]; // メモリから削除
     
     // UIから削除
     const tabEl = document.getElementById(tabId);
     if (tabEl) tabEl.remove();
 
-    // 削除したデータを完全にopenFilesから消去
+    // データをopenFilesから消去
     delete openFiles[tabId];
 
     if (currentTabId === tabId) {
@@ -179,7 +192,7 @@ async function saveFile() {
     }
 }
 
-// --- 🌟4. キーボードショートカットの全体制御 ---
+// --- 4. キーボードショートカットの全体制御 ---
 window.addEventListener('keydown', function(e) {
     // Ctrl + S (上書き保存)
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -189,7 +202,7 @@ window.addEventListener('keydown', function(e) {
 
     // Alt + W (選択中のタブを閉じる)
     if (e.altKey && (e.key === 'w' || e.key === 'W')) {
-        e.preventDefault(); // ブラウザ側の予期せぬ動作を防止
+        e.preventDefault();
         if (currentTabId) {
             closeTab(currentTabId);
         }
