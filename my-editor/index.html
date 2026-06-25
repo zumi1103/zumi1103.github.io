@@ -17,6 +17,8 @@
             <button id="zoomResetBtn" title="ズームリセット (Ctrl+0)">R</button>
             <button id="zoomInBtn" title="ズームイン (Ctrl+=)">＋</button>
         </div>
+        
+        <button id="helpBtn" title="ショートカットキー一覧">i</button>
     </div>
 
     <div id="main-area">
@@ -31,6 +33,21 @@
     </div>
 
     <div id="toast" class="toast-hidden">保存しました！</div>
+
+    <div id="helpModal" class="modal-hidden">
+        <div class="modal-content">
+            <span id="closeModalBtn" class="modal-close">&times;</span>
+            <h2>ショートカットキー一覧</h2>
+            <table>
+                <tr><th>機能</th><th>Windows</th><th>Mac</th></tr>
+                <tr><td>保存</td><td>Ctrl + S</td><td>Cmd + S</td></tr>
+                <tr><td>タブを閉じる</td><td>Alt + W</td><td>Option + W</td></tr>
+                <tr><td>ズームイン</td><td>Ctrl + ホイール上<br>または Ctrl + ＋</td><td>Cmd + ホイール上<br>または Cmd + ＋</td></tr>
+                <tr><td>ズームアウト</td><td>Ctrl + ホイール下<br>または Ctrl + －</td><td>Cmd + ホイール下<br>または Cmd + －</td></tr>
+                <tr><td>ズームリセット</td><td>Ctrl + 0</td><td>Cmd + 0</td></tr>
+            </table>
+        </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.js"></script>
     <script src="app.js"></script>
