@@ -3,7 +3,6 @@ let openFiles = {};
 let currentTabId = null; 
 let tabCounter = 0; 
 
-// 起動時やタブを閉じた時に「空画面」の表示を切り替える関数
 function updateEmptyState() {
     const emptyState = document.getElementById('empty-state');
     if (Object.keys(openFiles).length === 0) {
@@ -21,22 +20,17 @@ require(['vs/editor/editor.main'], function () {
         language: 'plaintext',
         theme: 'vs-dark',
         automaticLayout: true,
-        // 🌟変更点：ショートカットでのズームを有効にする
         mouseWheelZoom: true,
-        // (参考)Ctrl+-, Ctrl+=, Ctrl+0 のショートカットもMonacoに標準搭載されています
     });
 
-    // エディタ内でCtrl+Sが押された時の処理
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async function() {
         await saveFile();
     });
 
-    // エディタ内でAlt+Wが押された時もタブを閉じられるように設定
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyW, function() {
         if (currentTabId) closeTab(currentTabId);
     });
 
-    // 🌟新機能：ズームボタンのイベントハンドラを追加
     document.getElementById('zoomInBtn').addEventListener('click', () => {
         editor.getAction('editor.action.fontZoomIn').run();
     });
@@ -48,7 +42,6 @@ require(['vs/editor/editor.main'], function () {
     });
 });
 
-// ファイルハンドルを受け取ってエディタで開く共通関数
 async function openFileFromHandle(handle) {
     const file = await handle.getFile();
     const text = await file.text();
@@ -72,7 +65,7 @@ async function openFileFromHandle(handle) {
     updateEmptyState(); 
 }
 
-// --- 2. ファイルを開く処理（ボタンから複数選択） ---
+// --- 2. ファイルを開く処理 ---
 document.getElementById('openBtn').addEventListener('click', async () => {
     try {
         const handles = await window.showOpenFilePicker({ multiple: true });
@@ -114,7 +107,7 @@ document.body.addEventListener('drop', async (e) => {
     }
 });
 
-// --- タブUI生成 ---
+// --- タブUI生成・切り替え・閉じる ---
 function createTabUI(tabId, fileName) {
     const tabsContainer = document.getElementById('tabs-container');
     const tabEl = document.createElement('div');
@@ -142,7 +135,6 @@ function createTabUI(tabId, fileName) {
     tabsContainer.appendChild(tabEl);
 }
 
-// --- タブ切り替え ---
 function switchTab(tabId) {
     if (!openFiles[tabId]) return;
     currentTabId = tabId;
@@ -152,17 +144,14 @@ function switchTab(tabId) {
     document.getElementById(tabId).classList.add('active');
 }
 
-// --- タブ閉じる処理 ---
 function closeTab(tabId) {
     if (!openFiles[tabId]) return;
 
     openFiles[tabId].model.dispose();
     
-    // UIから削除
     const tabEl = document.getElementById(tabId);
     if (tabEl) tabEl.remove();
 
-    // データをopenFilesから消去
     delete openFiles[tabId];
 
     if (currentTabId === tabId) {
@@ -192,15 +181,13 @@ async function saveFile() {
     }
 }
 
-// --- 4. キーボードショートカットの全体制御 ---
+// --- 4. キーボードショートカット制御 ---
 window.addEventListener('keydown', function(e) {
-    // Ctrl + S (上書き保存)
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         saveFile();
     }
 
-    // Alt + W (選択中のタブを閉じる)
     if (e.altKey && (e.key === 'w' || e.key === 'W')) {
         e.preventDefault();
         if (currentTabId) {
@@ -209,7 +196,6 @@ window.addEventListener('keydown', function(e) {
     }
 });
 
-// --- トースト通知 ---
 function showToast() {
     const toast = document.getElementById('toast');
     toast.className = 'toast-show';
@@ -218,5 +204,26 @@ function showToast() {
     }, 3000);
 }
 
-// 起動時に空画面の表示を判定
+// 🌟追加：ヘルプモーダルの制御
+const helpBtn = document.getElementById('helpBtn');
+const helpModal = document.getElementById('helpModal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+
+// 「i」ボタンをクリックで開く
+helpBtn.addEventListener('click', () => {
+    helpModal.classList.add('modal-show');
+});
+
+// 「×」ボタンで閉じる
+closeModalBtn.addEventListener('click', () => {
+    helpModal.classList.remove('modal-show');
+});
+
+// モーダルの外側（暗い背景部分）をクリックしても閉じる
+helpModal.addEventListener('click', (e) => {
+    if (e.target === helpModal) {
+        helpModal.classList.remove('modal-show');
+    }
+});
+
 updateEmptyState();
