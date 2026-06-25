@@ -1,0 +1,39 @@
+/* 画面全体の余白をなくす */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    font-family: sans-serif;
+    overflow: hidden;
+}
+
+/* ツールバーの装飾 */
+#toolbar {
+    padding: 10px 15px;
+    background-color: #252526; /* VSCode風のダークカラー */
+    color: #cccccc;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#openBtn {
+    padding: 5px 15px;
+    cursor: pointer;
+    background-color: #0e639c; /* VSCodeのボタンカラー */
+    color: white;
+    border: none;
+    border-radius: 2px;
+}
+
+#openBtn:hover {
+    background-color: #1177bb;
+}
+
+/* エディタ領域を残りの高さ全体に広げる */
+#editor-container {
+    flex-grow: 1;
+    width: 100%;
+}
