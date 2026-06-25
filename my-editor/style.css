@@ -67,3 +67,60 @@ body, html {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* 🌟ここから追加：タブ機能のスタイル */
+#tabs-container {
+    display: flex;
+    overflow-x: auto; /* タブが増えたら横スクロール可能に */
+    gap: 1px;
+    flex-grow: 1;
+}
+
+.tab {
+    background-color: #2d2d2d; /* 非アクティブなタブの色 */
+    padding: 5px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #969696;
+    border-top: 2px solid transparent;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.tab:hover:not(.active) {
+    background-color: #333333;
+}
+
+/* 選択中のタブのデザイン */
+.tab.active {
+    background-color: #1e1e1e; /* エディタ本体と同じ色にして一体感を出す */
+    color: #ffffff;
+    border-top: 2px solid #007acc; /* VSCode風の青いライン */
+}
+
+/* タブを閉じる(×)ボタン */
+.tab-close {
+    font-size: 14px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+}
+
+.tab-close:hover {
+    background-color: #5a5a5a;
+    color: white;
+}
+
+
+
+
+
+
+
+
