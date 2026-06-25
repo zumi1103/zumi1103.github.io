@@ -179,3 +179,19 @@ body, html {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* 🌟追加：アプリタイトルのスタイル */
+#app-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
+    padding-right: 15px;
+    border-right: 1px solid #555;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+}
+
+
+
+
