@@ -78,6 +78,9 @@ async function saveFile() {
         await writable.write(editor.getValue());
         // ファイルを閉じて保存完了
         await writable.close();
+
+        // 保存成功の通知を出す
+        showToast();
         
         // ユーザーに保存できたことを通知（VSCodeっぽく目立たないようにしてもOK）
         console.log('保存完了!'); 
@@ -94,3 +97,19 @@ window.addEventListener('keydown', function(e) {
         saveFile(); // 自作の保存処理を走らせる
     }
 });
+
+// 🌟ここを追加：通知を表示して、3秒後に隠す関数
+function showToast() {
+    const toast = document.getElementById('toast');
+    toast.className = 'toast-show'; // 表示用クラスに切り替えてアニメーション発動
+    
+    // 3000ミリ秒（3秒）後に再び非表示にする
+    setTimeout(() => {
+        toast.className = 'toast-hidden';
+    }, 3000);
+}
+
+
+
+
+
