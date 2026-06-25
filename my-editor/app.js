@@ -23,8 +23,14 @@ require(['vs/editor/editor.main'], function () {
         automaticLayout: true
     });
 
+    // エディタ内でCtrl+Sが押された時の処理
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async function() {
         await saveFile();
+    });
+
+    // 🌟エディタ内でAlt+Wが押された時もタブを閉じられるように設定
+    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyW, function() {
+        if (currentTabId) closeTab(currentTabId);
     });
 });
 
@@ -64,7 +70,7 @@ document.getElementById('openBtn').addEventListener('click', async () => {
     }
 });
 
-// --- 🌟修正：ドラッグ＆ドロップ対応（複数対応のバグ修正） ---
+// --- ドラッグ＆ドロップ対応 ---
 document.body.addEventListener('dragover', (e) => {
     e.preventDefault(); 
 });
@@ -74,7 +80,6 @@ document.body.addEventListener('drop', async (e) => {
     const items = e.dataTransfer.items;
     if (!items) return;
 
-    // 💡ブラウザの仕様対策：awaitで処理が止まる「前」に、全アイテムのハンドル取得を配列に確保する
     const handlePromises = [];
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
@@ -84,7 +89,6 @@ document.body.addEventListener('drop', async (e) => {
     }
 
     try {
-        // 確保したものをまとめて取得してから、順番にファイルを開く
         const handles = await Promise.all(handlePromises);
         for (const handle of handles) {
             if (handle && handle.kind === 'file') {
@@ -136,9 +140,17 @@ function switchTab(tabId) {
 
 // --- タブ閉じる処理 ---
 function closeTab(tabId) {
+    if (!openFiles[tabId]) return;
+
     openFiles[tabId].model.dispose();
+    delete openFiles[openFiles[tabId]]; // メモリから削除
+    
+    // UIから削除
+    const tabEl = document.getElementById(tabId);
+    if (tabEl) tabEl.remove();
+
+    // 削除したデータを完全にopenFilesから消去
     delete openFiles[tabId];
-    document.getElementById(tabId).remove();
 
     if (currentTabId === tabId) {
         currentTabId = null;
@@ -167,11 +179,20 @@ async function saveFile() {
     }
 }
 
-// --- 4. Ctrl+S 制御 ---
+// --- 🌟4. キーボードショートカットの全体制御 ---
 window.addEventListener('keydown', function(e) {
+    // Ctrl + S (上書き保存)
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         saveFile();
+    }
+
+    // Alt + W (選択中のタブを閉じる)
+    if (e.altKey && (e.key === 'w' || e.key === 'W')) {
+        e.preventDefault(); // ブラウザ側の予期せぬ動作を防止
+        if (currentTabId) {
+            closeTab(currentTabId);
+        }
     }
 });
 
