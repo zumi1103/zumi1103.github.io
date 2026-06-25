@@ -33,12 +33,28 @@ document.getElementById('openBtn').addEventListener('click', async () => {
         document.getElementById('fileName').textContent = file.name;
 
         // 拡張子から言語を判定（簡易的）
+        const extMap = {
+            'js': 'javascript',
+            'json': 'json',
+            'html': 'html',
+            'css': 'css',
+            'ps1': 'powershell',
+            'py': 'python',
+            'xml': 'xml',
+            'md': 'markdown',
+            'ts': 'typescript',
+            'sql': 'sql',
+            'java': 'java',
+            'cs': 'csharp',
+            'c': 'c',
+            'cpp': 'cpp',
+            'sh': 'shell',
+            'bat': 'bat'
+        };
+
+        // 拡張子を取得して対応表から言語を探す。見つからなければ 'plaintext' にする
         const ext = file.name.split('.').pop().toLowerCase();
-        let language = 'plaintext';
-        if (ext === 'json') language = 'json';
-        else if (ext === 'js') language = 'javascript';
-        else if (ext === 'html') language = 'html';
-        else if (ext === 'css') language = 'css';
+        const language = extMap[ext] || 'plaintext';
 
         // エディタに読み込んだテキストと言語ルールをセット
         const model = monaco.editor.createModel(text, language);
