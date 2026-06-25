@@ -1,4 +1,4 @@
-/* 全体のベース設定（背景をダークにしてまぶしさを解消） */
+/* 全体のベース設定 */
 body, html {
     margin: 0;
     padding: 0;
@@ -7,7 +7,7 @@ body, html {
     flex-direction: column;
     font-family: sans-serif;
     overflow: hidden;
-    background-color: #1e1e1e; /* VSCodeのエディタと同じ色 */
+    background-color: #1e1e1e;
 }
 
 /* ツールバー */
@@ -18,6 +18,17 @@ body, html {
     display: flex;
     align-items: center;
     gap: 15px;
+}
+
+#app-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
+    padding-right: 15px;
+    border-right: 1px solid #555;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
 }
 
 #openBtn {
@@ -34,7 +45,7 @@ body, html {
     background-color: #1177bb;
 }
 
-/* メインエリアの構成 */
+/* メインエリア */
 #main-area {
     flex-grow: 1;
     position: relative;
@@ -46,7 +57,7 @@ body, html {
     height: 100%;
 }
 
-/* ファイルが空の時のUI（ドラッグ＆ドロップ案内） */
+/* 空画面 */
 #empty-state {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -55,7 +66,7 @@ body, html {
     justify-content: center;
     background-color: #1e1e1e;
     color: #cccccc;
-    z-index: 10; /* エディタの上に表示 */
+    z-index: 10;
 }
 
 .empty-state-content {
@@ -64,26 +75,14 @@ body, html {
     padding: 50px 80px;
     border-radius: 10px;
     background-color: #252526;
-    pointer-events: none; /* ドロップ操作の邪魔にならないようにする */
+    pointer-events: none;
 }
 
-.empty-state-content h2 {
-    margin-top: 0;
-    font-weight: normal;
-    color: #d4d4d4;
-}
+.empty-state-content h2 { margin-top: 0; font-weight: normal; color: #d4d4d4; }
+.empty-state-content p { color: #888; font-size: 14px; }
+.hidden { display: none !important; }
 
-.empty-state-content p {
-    color: #888;
-    font-size: 14px;
-}
-
-/* 空画面を隠す用のクラス */
-.hidden {
-    display: none !important;
-}
-
-/* タブ機能のスタイル */
+/* タブ機能 */
 #tabs-container {
     display: flex;
     overflow-x: auto;
@@ -105,10 +104,7 @@ body, html {
     white-space: nowrap;
 }
 
-.tab:hover:not(.active) {
-    background-color: #333333;
-}
-
+.tab:hover:not(.active) { background-color: #333333; }
 .tab.active {
     background-color: #1e1e1e;
     color: #ffffff;
@@ -116,82 +112,109 @@ body, html {
 }
 
 .tab-close {
-    font-size: 14px;
-    width: 18px;
-    height: 18px;
+    font-size: 14px; width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center; border-radius: 3px;
+}
+.tab-close:hover { background-color: #5a5a5a; color: white; }
+
+/* ズームコントロール */
+#zoom-controls { display: flex; gap: 5px; }
+#zoom-controls button {
+    background-color: #333; color: #ccc; border: 1px solid #444;
+    border-radius: 3px; padding: 2px 8px; cursor: pointer; font-size: 12px;
+}
+#zoom-controls button:hover { background-color: #444; }
+#zoom-controls button:active { background-color: #555; }
+
+/* 🌟追加：「i」ヘルプボタンのデザイン */
+#helpBtn {
+    background-color: transparent;
+    color: #cccccc;
+    border: 1px solid #cccccc;
+    border-radius: 50%; /* 丸くする */
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 3px;
-}
-
-.tab-close:hover {
-    background-color: #5a5a5a;
-    color: white;
-}
-
-/* 🌟追加：ズームコントロールのスタイル */
-#zoom-controls {
-    display: flex;
-    gap: 5px;
-}
-
-#zoom-controls button {
-    background-color: #333;
-    color: #ccc;
-    border: 1px solid #444;
-    border-radius: 3px;
-    padding: 2px 8px;
+    font-family: serif;
+    font-style: italic;
+    font-size: 14px;
     cursor: pointer;
-    font-size: 12px;
+    margin-left: 10px;
+}
+#helpBtn:hover {
+    color: #ffffff;
+    border-color: #ffffff;
+    background-color: #444444;
 }
 
-#zoom-controls button:hover {
-    background-color: #444;
+/* 🌟追加：ヘルプモーダル（ポップアップ）のデザイン */
+#helpModal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* 背景を少し暗くする */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+#helpModal.modal-show {
+    opacity: 1;
+    pointer-events: auto;
 }
 
-#zoom-controls button:active {
-    background-color: #555;
+.modal-content {
+    background-color: #252526;
+    color: #cccccc;
+    padding: 20px 30px 30px;
+    border-radius: 6px;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    max-width: 500px;
+    width: 90%;
 }
+.modal-content h2 {
+    margin-top: 0;
+    color: #ffffff;
+    font-size: 18px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 10px;
+}
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #888;
+}
+.modal-close:hover { color: #ffffff; }
+
+/* ヘルプモーダル内の表デザイン */
+.modal-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+.modal-content th, .modal-content td {
+    border: 1px solid #444;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 13px;
+}
+.modal-content th { background-color: #333333; color: #ffffff; }
 
 /* トースト通知 */
 #toast {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    background-color: #007acc;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 4px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    font-size: 14px;
-    z-index: 1000;
+    position: absolute; bottom: 20px; right: 20px;
+    background-color: #007acc; color: white; padding: 10px 20px;
+    border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    font-size: 14px; z-index: 1000;
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
-
-.toast-hidden {
-    opacity: 0;
-    transform: translateY(20px);
-    pointer-events: none;
-}
-
-.toast-show {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* 🌟追加：アプリタイトルのスタイル */
-#app-title {
-    margin: 0;
-    font-size: 16px;
-    font-weight: bold;
-    color: #ffffff;
-    padding-right: 15px;
-    border-right: 1px solid #555;
-    white-space: nowrap;
-    letter-spacing: 0.5px;
-}
-
-
-
-
+.toast-hidden { opacity: 0; transform: translateY(20px); pointer-events: none; }
+.toast-show { opacity: 1; transform: translateY(0); }
