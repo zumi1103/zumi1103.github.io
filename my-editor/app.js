@@ -3,13 +3,13 @@ let openFiles = {};
 let currentTabId = null; 
 let tabCounter = 0; 
 
-// 🌟新機能：開いているファイル数に応じて「空画面」と「エディタ」を切り替える関数
+// 起動時やタブを閉じた時に「空画面」の表示を切り替える関数
 function updateEmptyState() {
     const emptyState = document.getElementById('empty-state');
     if (Object.keys(openFiles).length === 0) {
-        emptyState.classList.remove('hidden'); // ファイルが0なら案内を表示
+        emptyState.classList.remove('hidden'); 
     } else {
-        emptyState.classList.add('hidden'); // 1つでもあれば隠す
+        emptyState.classList.add('hidden'); 
     }
 }
 
@@ -28,7 +28,7 @@ require(['vs/editor/editor.main'], function () {
     });
 });
 
-// 🌟新機能：ファイルハンドルを受け取ってエディタで開く共通関数（複数対応用）
+// ファイルハンドルを受け取ってエディタで開く共通関数
 async function openFileFromHandle(handle) {
     const file = await handle.getFile();
     const text = await file.text();
@@ -49,13 +49,12 @@ async function openFileFromHandle(handle) {
 
     createTabUI(tabId, file.name);
     switchTab(tabId);
-    updateEmptyState(); // 画面状態を更新
+    updateEmptyState(); 
 }
 
-// --- 2. ファイルを開く処理（🌟ボタンから複数選択対応） ---
+// --- 2. ファイルを開く処理（ボタンから複数選択） ---
 document.getElementById('openBtn').addEventListener('click', async () => {
     try {
-        // multiple: true で複数ファイル選択を許可
         const handles = await window.showOpenFilePicker({ multiple: true });
         for (const handle of handles) {
             await openFileFromHandle(handle);
@@ -65,9 +64,9 @@ document.getElementById('openBtn').addEventListener('click', async () => {
     }
 });
 
-// --- 🌟新機能：ドラッグ＆ドロップ対応（複数対応） ---
+// --- 🌟修正：ドラッグ＆ドロップ対応（複数対応のバグ修正） ---
 document.body.addEventListener('dragover', (e) => {
-    e.preventDefault(); // ブラウザ標準の動作（画像として開く等）をキャンセル
+    e.preventDefault(); 
 });
 
 document.body.addEventListener('drop', async (e) => {
@@ -75,15 +74,25 @@ document.body.addEventListener('drop', async (e) => {
     const items = e.dataTransfer.items;
     if (!items) return;
 
+    // 💡ブラウザの仕様対策：awaitで処理が止まる「前」に、全アイテムのハンドル取得を配列に確保する
+    const handlePromises = [];
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.kind === 'file') {
-            // 単なるファイルではなく、上書き保存可能な「ハンドル」として取得
-            const handle = await item.getAsFileSystemHandle();
+            handlePromises.push(item.getAsFileSystemHandle());
+        }
+    }
+
+    try {
+        // 確保したものをまとめて取得してから、順番にファイルを開く
+        const handles = await Promise.all(handlePromises);
+        for (const handle of handles) {
             if (handle && handle.kind === 'file') {
                 await openFileFromHandle(handle);
             }
         }
+    } catch (err) {
+        console.error('ドロップ処理エラー:', err);
     }
 });
 
@@ -140,7 +149,7 @@ function closeTab(tabId) {
             switchTab(remainingTabs[remainingTabs.length - 1]);
         }
     }
-    updateEmptyState(); // 🌟追加：全部閉じたかチェックしてUI更新
+    updateEmptyState(); 
 }
 
 // --- 3. 保存処理 ---
@@ -175,5 +184,5 @@ function showToast() {
     }, 3000);
 }
 
-// 🌟起動時に空画面の表示を判定
+// 起動時に空画面の表示を判定
 updateEmptyState();
