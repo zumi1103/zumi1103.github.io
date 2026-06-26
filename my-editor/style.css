@@ -126,7 +126,7 @@ body, html {
 #zoom-controls button:hover { background-color: #444; }
 #zoom-controls button:active { background-color: #555; }
 
-/* 🌟追加：リポジトリへのリンクボタン（📁） */
+/* リポジトリへのリンクボタン（📁） */
 #repoLinkBtn {
     text-decoration: none;
     font-size: 18px;
@@ -137,8 +137,55 @@ body, html {
     transition: transform 0.2s ease, opacity 0.2s ease;
 }
 #repoLinkBtn:hover {
-    transform: scale(1.1); /* マウスを乗せると少し大きくなる */
+    transform: scale(1.1);
     opacity: 0.8;
+}
+
+/* 🌟追加：設定（歯車）ボタンとドロップダウンメニューのスタイル */
+#settings-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-left: 5px;
+}
+#settingsBtn {
+    background-color: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #cccccc;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#settingsBtn:hover { color: #ffffff; }
+
+#settingsMenu {
+    position: absolute;
+    top: 30px;
+    right: 0;
+    background-color: #252526;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 10px 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    z-index: 1500;
+    white-space: nowrap;
+    color: #cccccc;
+    font-size: 13px;
+}
+.menu-hidden { display: none !important; }
+
+#settingsMenu label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+#settingsMenu input[type="checkbox"] {
+    cursor: pointer;
 }
 
 /* 「i」ヘルプボタンのデザイン */
@@ -156,7 +203,7 @@ body, html {
     font-style: italic;
     font-size: 14px;
     cursor: pointer;
-    margin-left: 5px;
+    margin-left: 10px;
 }
 #helpBtn:hover {
     color: #ffffff;
