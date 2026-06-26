@@ -3,8 +3,8 @@ let openFiles = {};
 let currentTabId = null; 
 let tabCounter = 0; 
 
-// 🌟追加：Auto Save用の管理変数
-let autoSaveEnabled = localStorage.getItem('autoSaveEnabled') === 'true'; // 前回の設定を復元（なければfalse）
+// Auto Save用の管理変数
+let autoSaveEnabled = localStorage.getItem('autoSaveEnabled') === 'true'; 
 let autoSaveTimeout = null;
 
 function updateEmptyState() {
@@ -13,6 +13,20 @@ function updateEmptyState() {
         emptyState.classList.remove('hidden'); 
     } else {
         emptyState.classList.add('hidden'); 
+    }
+}
+
+// 🌟新機能：タブの未保存マーク(●)の表示/非表示を切り替える関数
+function updateTabDirtyStatus(tabId, isDirty) {
+    const tabEl = document.getElementById(tabId);
+    if (!tabEl) return;
+    const dirtyMark = tabEl.querySelector('.tab-dirty');
+    if (dirtyMark) {
+        if (isDirty) {
+            dirtyMark.classList.remove('hidden');
+        } else {
+            dirtyMark.classList.add('hidden');
+        }
     }
 }
 
@@ -28,20 +42,27 @@ require(['vs/editor/editor.main'], function () {
     });
 
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async function() {
-        await saveFile(false); // 手動保存（トーストを出す）
+        await saveFile(false); 
     });
 
-    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyW, function() {
-        if (currentTabId) closeTab(currentTabId);
+    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyW, async function() {
+        if (currentTabId) await closeTab(currentTabId);
     });
 
-    // 🌟追加：エディタのテキスト変更イベントを監視（自動保存用）
+    // エディタのテキスト変更イベントを監視
     editor.onDidChangeModelContent(() => {
+        // 🌟変更点：文字が入力されたら、現在のタブを「未保存(isDirty)」状態にする
+        if (currentTabId && openFiles[currentTabId]) {
+            if (!openFiles[currentTabId].isDirty) {
+                openFiles[currentTabId].isDirty = true;
+                updateTabDirtyStatus(currentTabId, true); // タブに●を表示
+            }
+        }
+
         if (autoSaveEnabled && currentTabId) {
-            // タイピング中は何回も保存が走らないよう、タイマーをリセット（デバウンス処理）
             clearTimeout(autoSaveTimeout);
             autoSaveTimeout = setTimeout(async () => {
-                await saveFile(true); // 入力が止まって1.5秒後に静かに自動保存（トーストを出さない）
+                await saveFile(true); 
             }, 1500);
         }
     });
@@ -73,7 +94,8 @@ async function openFileFromHandle(handle) {
     const model = monaco.editor.createModel(text, language);
     const tabId = 'tab_' + (++tabCounter);
     
-    openFiles[tabId] = { handle: handle, model: model, name: file.name };
+    // 🌟変更点：初期状態は未保存ではないので isDirty: false
+    openFiles[tabId] = { handle: handle, model: model, name: file.name, isDirty: false };
 
     createTabUI(tabId, file.name);
     switchTab(tabId);
@@ -132,6 +154,11 @@ function createTabUI(tabId, fileName) {
     const nameEl = document.createElement('span');
     nameEl.textContent = fileName;
     
+    // 🌟追加：未保存マーク(●)の要素をタブ内に作成（初期は非表示）
+    const dirtyMark = document.createElement('span');
+    dirtyMark.className = 'tab-dirty hidden';
+    dirtyMark.textContent = '●';
+    
     const closeBtn = document.createElement('span');
     closeBtn.className = 'tab-close';
     closeBtn.textContent = '×';
@@ -146,6 +173,7 @@ function createTabUI(tabId, fileName) {
     });
 
     tabEl.appendChild(nameEl);
+    tabEl.appendChild(dirtyMark); // 名前の後ろに挿入
     tabEl.appendChild(closeBtn);
     tabsContainer.appendChild(tabEl);
 }
@@ -162,10 +190,17 @@ function switchTab(tabId) {
 async function closeTab(tabId) {
     if (!openFiles[tabId]) return;
 
-    // 🌟追加：もし自動保存がONなら、タイマー待ちをキャンセルして即座に最終保存を行う
-    if (autoSaveEnabled) {
+    // 🌟新機能：Auto SaveがOFF、かつ未保存(isDirty)の場合、確認画面を出す
+    if (!autoSaveEnabled && openFiles[tabId].isDirty) {
+        const confirmClose = confirm(`「${openFiles[tabId].name}」への変更は保存されていません。\n保存せずに閉じますか？`);
+        if (!confirmClose) {
+            return; // 「キャンセル」が押されたら、閉じる処理をここで中断する
+        }
+    }
+
+    // Auto SaveがON、かつ未保存の場合、タイマーを待たずに即座に最終保存を行う
+    if (autoSaveEnabled && openFiles[tabId].isDirty) {
         clearTimeout(autoSaveTimeout);
-        // 閉じようとしているタブが現在のタブならエディタから値を取得、違うならモデルから取得
         const writable = await openFiles[tabId].handle.createWritable();
         const content = (currentTabId === tabId) ? editor.getValue() : openFiles[tabId].model.getValue();
         await writable.write(content);
@@ -192,7 +227,6 @@ async function closeTab(tabId) {
 }
 
 // --- 3. 保存処理 ---
-// 🌟変更点：isSilent (trueならトースト通知を出さない) 引数を追加
 async function saveFile(isSilent = false) {
     if (!currentTabId || !openFiles[currentTabId]) return;
     try {
@@ -201,27 +235,30 @@ async function saveFile(isSilent = false) {
         await writable.write(editor.getValue());
         await writable.close();
         
+        // 🌟変更点：保存が成功したら、未保存状態を解除する
+        openFiles[currentTabId].isDirty = false;
+        updateTabDirtyStatus(currentTabId, false); // ●を消す
+        
         if (!isSilent) {
-            showToast(); // 手動保存のときだけ通知を出す
+            showToast(); 
         }
     } catch (err) {
         console.error('保存エラー:', err);
-        // 自動保存のエラーはタイピングを邪魔しないようコンソールのみ、手動はアラート
         if (!isSilent) alert('保存に失敗しました。');
     }
 }
 
 // --- 4. キーボードショートカット制御 ---
-window.addEventListener('keydown', function(e) {
+window.addEventListener('keydown', async function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        saveFile(false);
+        await saveFile(false);
     }
 
     if (e.altKey && (e.key === 'w' || e.key === 'W')) {
         e.preventDefault();
         if (currentTabId) {
-            closeTab(currentTabId);
+            await closeTab(currentTabId);
         }
     }
 });
@@ -245,31 +282,27 @@ helpModal.addEventListener('click', (e) => {
     if (e.target === helpModal) { helpModal.classList.remove('modal-show'); }
 });
 
-// 🌟追加：設定メニュー（歯車）の開閉ロジック
+// 設定メニュー（歯車）の開閉ロジック
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsMenu = document.getElementById('settingsMenu');
 const autoSaveToggle = document.getElementById('autoSaveToggle');
 
-// 初期状態のチェックボックスをLocalStorageの値に合わせる
 autoSaveToggle.checked = autoSaveEnabled;
 
-// 歯車クリックでメニュー表示/非表示
 settingsBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     settingsMenu.classList.toggle('menu-hidden');
 });
 
-// メニューの外側をクリックしたらメニューを閉じる
 document.addEventListener('click', (e) => {
     if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
         settingsMenu.classList.add('menu-hidden');
     }
 });
 
-// チェックボックスが切り替わった時の処理
 autoSaveToggle.addEventListener('change', (e) => {
     autoSaveEnabled = e.target.checked;
-    localStorage.setItem('autoSaveEnabled', autoSaveEnabled); // 設定を記憶
+    localStorage.setItem('autoSaveEnabled', autoSaveEnabled);
 });
 
 updateEmptyState();
