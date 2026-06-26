@@ -280,3 +280,11 @@ body, html {
 }
 .toast-hidden { opacity: 0; transform: translateY(20px); pointer-events: none; }
 .toast-show { opacity: 1; transform: translateY(0); }
+
+/* 🌟追加：タブの未保存マーク(●)のスタイル */
+.tab-dirty {
+    color: #ffaa00; /* VSCode風のオレンジがかった黄色 */
+    font-size: 9px;
+    margin-left: 4px;
+    pointer-events: none; /* クリックの邪魔にならないようにする */
+}
