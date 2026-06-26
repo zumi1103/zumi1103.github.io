@@ -3,6 +3,10 @@ let openFiles = {};
 let currentTabId = null; 
 let tabCounter = 0; 
 
+// 🌟追加：Auto Save用の管理変数
+let autoSaveEnabled = localStorage.getItem('autoSaveEnabled') === 'true'; // 前回の設定を復元（なければfalse）
+let autoSaveTimeout = null;
+
 function updateEmptyState() {
     const emptyState = document.getElementById('empty-state');
     if (Object.keys(openFiles).length === 0) {
@@ -24,11 +28,22 @@ require(['vs/editor/editor.main'], function () {
     });
 
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async function() {
-        await saveFile();
+        await saveFile(false); // 手動保存（トーストを出す）
     });
 
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyW, function() {
         if (currentTabId) closeTab(currentTabId);
+    });
+
+    // 🌟追加：エディタのテキスト変更イベントを監視（自動保存用）
+    editor.onDidChangeModelContent(() => {
+        if (autoSaveEnabled && currentTabId) {
+            // タイピング中は何回も保存が走らないよう、タイマーをリセット（デバウンス処理）
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(async () => {
+                await saveFile(true); // 入力が止まって1.5秒後に静かに自動保存（トーストを出さない）
+            }, 1500);
+        }
     });
 
     document.getElementById('zoomInBtn').addEventListener('click', () => {
@@ -121,9 +136,9 @@ function createTabUI(tabId, fileName) {
     closeBtn.className = 'tab-close';
     closeBtn.textContent = '×';
     
-    closeBtn.addEventListener('click', (e) => {
+    closeBtn.addEventListener('click', async (e) => {
         e.stopPropagation(); 
-        closeTab(tabId);
+        await closeTab(tabId);
     });
 
     tabEl.addEventListener('click', () => {
@@ -144,8 +159,18 @@ function switchTab(tabId) {
     document.getElementById(tabId).classList.add('active');
 }
 
-function closeTab(tabId) {
+async function closeTab(tabId) {
     if (!openFiles[tabId]) return;
+
+    // 🌟追加：もし自動保存がONなら、タイマー待ちをキャンセルして即座に最終保存を行う
+    if (autoSaveEnabled) {
+        clearTimeout(autoSaveTimeout);
+        // 閉じようとしているタブが現在のタブならエディタから値を取得、違うならモデルから取得
+        const writable = await openFiles[tabId].handle.createWritable();
+        const content = (currentTabId === tabId) ? editor.getValue() : openFiles[tabId].model.getValue();
+        await writable.write(content);
+        await writable.close();
+    }
 
     openFiles[tabId].model.dispose();
     
@@ -167,17 +192,22 @@ function closeTab(tabId) {
 }
 
 // --- 3. 保存処理 ---
-async function saveFile() {
+// 🌟変更点：isSilent (trueならトースト通知を出さない) 引数を追加
+async function saveFile(isSilent = false) {
     if (!currentTabId || !openFiles[currentTabId]) return;
     try {
         const handle = openFiles[currentTabId].handle;
         const writable = await handle.createWritable();
         await writable.write(editor.getValue());
         await writable.close();
-        showToast();
+        
+        if (!isSilent) {
+            showToast(); // 手動保存のときだけ通知を出す
+        }
     } catch (err) {
         console.error('保存エラー:', err);
-        alert('保存に失敗しました。');
+        // 自動保存のエラーはタイピングを邪魔しないようコンソールのみ、手動はアラート
+        if (!isSilent) alert('保存に失敗しました。');
     }
 }
 
@@ -185,7 +215,7 @@ async function saveFile() {
 window.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        saveFile();
+        saveFile(false);
     }
 
     if (e.altKey && (e.key === 'w' || e.key === 'W')) {
@@ -204,26 +234,42 @@ function showToast() {
     }, 3000);
 }
 
-// 🌟追加：ヘルプモーダルの制御
+// ヘルプモーダルの制御
 const helpBtn = document.getElementById('helpBtn');
 const helpModal = document.getElementById('helpModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
-// 「i」ボタンをクリックで開く
-helpBtn.addEventListener('click', () => {
-    helpModal.classList.add('modal-show');
-});
-
-// 「×」ボタンで閉じる
-closeModalBtn.addEventListener('click', () => {
-    helpModal.classList.remove('modal-show');
-});
-
-// モーダルの外側（暗い背景部分）をクリックしても閉じる
+helpBtn.addEventListener('click', () => { helpModal.classList.add('modal-show'); });
+closeModalBtn.addEventListener('click', () => { helpModal.classList.remove('modal-show'); });
 helpModal.addEventListener('click', (e) => {
-    if (e.target === helpModal) {
-        helpModal.classList.remove('modal-show');
+    if (e.target === helpModal) { helpModal.classList.remove('modal-show'); }
+});
+
+// 🌟追加：設定メニュー（歯車）の開閉ロジック
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsMenu = document.getElementById('settingsMenu');
+const autoSaveToggle = document.getElementById('autoSaveToggle');
+
+// 初期状態のチェックボックスをLocalStorageの値に合わせる
+autoSaveToggle.checked = autoSaveEnabled;
+
+// 歯車クリックでメニュー表示/非表示
+settingsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    settingsMenu.classList.toggle('menu-hidden');
+});
+
+// メニューの外側をクリックしたらメニューを閉じる
+document.addEventListener('click', (e) => {
+    if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
+        settingsMenu.classList.add('menu-hidden');
     }
+});
+
+// チェックボックスが切り替わった時の処理
+autoSaveToggle.addEventListener('change', (e) => {
+    autoSaveEnabled = e.target.checked;
+    localStorage.setItem('autoSaveEnabled', autoSaveEnabled); // 設定を記憶
 });
 
 updateEmptyState();
