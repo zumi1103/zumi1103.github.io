@@ -3,20 +3,23 @@ let openFiles = {};
 let currentTabId = null; 
 let tabCounter = 0; 
 
-// Auto Save用の管理変数
 let autoSaveEnabled = localStorage.getItem('autoSaveEnabled') === 'true'; 
 let autoSaveTimeout = null;
 
+// 空画面とUIの更新
 function updateEmptyState() {
     const emptyState = document.getElementById('empty-state');
+    const encodingSelect = document.getElementById('encodingSelect');
+    
     if (Object.keys(openFiles).length === 0) {
         emptyState.classList.remove('hidden'); 
+        encodingSelect.classList.add('hidden'); // ファイルが無い時は非表示
     } else {
         emptyState.classList.add('hidden'); 
+        encodingSelect.classList.remove('hidden');
     }
 }
 
-// 🌟新機能：タブの未保存マーク(●)の表示/非表示を切り替える関数
 function updateTabDirtyStatus(tabId, isDirty) {
     const tabEl = document.getElementById(tabId);
     if (!tabEl) return;
@@ -28,6 +31,24 @@ function updateTabDirtyStatus(tabId, isDirty) {
             dirtyMark.classList.add('hidden');
         }
     }
+}
+
+// 🌟新機能：ファイル書き込み時の共通処理（BOM対応）
+async function writeContentToFile(handle, content, encoding) {
+    let writeData = content;
+    
+    if (encoding === 'utf8bom') {
+        // UTF-8の文字列をバイト配列に変換し、先頭にBOM(EF BB BF)を付与する
+        const encoder = new TextEncoder();
+        const textBytes = encoder.encode(content);
+        writeData = new Uint8Array(3 + textBytes.length);
+        writeData.set([0xEF, 0xBB, 0xBF], 0);
+        writeData.set(textBytes, 3);
+    }
+    
+    const writable = await handle.createWritable();
+    await writable.write(writeData);
+    await writable.close();
 }
 
 // --- 1. Monaco Editor の初期化処理 ---
@@ -49,13 +70,11 @@ require(['vs/editor/editor.main'], function () {
         if (currentTabId) await closeTab(currentTabId);
     });
 
-    // エディタのテキスト変更イベントを監視
     editor.onDidChangeModelContent(() => {
-        // 🌟変更点：文字が入力されたら、現在のタブを「未保存(isDirty)」状態にする
         if (currentTabId && openFiles[currentTabId]) {
             if (!openFiles[currentTabId].isDirty) {
                 openFiles[currentTabId].isDirty = true;
-                updateTabDirtyStatus(currentTabId, true); // タブに●を表示
+                updateTabDirtyStatus(currentTabId, true); 
             }
         }
 
@@ -80,7 +99,19 @@ require(['vs/editor/editor.main'], function () {
 
 async function openFileFromHandle(handle) {
     const file = await handle.getFile();
-    const text = await file.text();
+    
+    // 🌟変更点：生のバイトデータとして読み込み、BOMを判定する
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let encoding = 'utf8';
+    
+    if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+        encoding = 'utf8bom';
+    }
+    
+    // バイトデータを文字列に変換（TextDecoderはBOMを自動で取り除いてくれる）
+    const decoder = new TextDecoder('utf-8');
+    const text = decoder.decode(bytes);
 
     const extMap = {
         'js': 'javascript', 'json': 'json', 'html': 'html', 'css': 'css',
@@ -94,13 +125,26 @@ async function openFileFromHandle(handle) {
     const model = monaco.editor.createModel(text, language);
     const tabId = 'tab_' + (++tabCounter);
     
-    // 🌟変更点：初期状態は未保存ではないので isDirty: false
-    openFiles[tabId] = { handle: handle, model: model, name: file.name, isDirty: false };
+    // 🌟変更点：ファイルのプロパティにエンコード情報を追加
+    openFiles[tabId] = { handle: handle, model: model, name: file.name, isDirty: false, encoding: encoding };
 
     createTabUI(tabId, file.name);
     switchTab(tabId);
     updateEmptyState(); 
 }
+
+// --- エンコードUIの連動 ---
+const encodingSelect = document.getElementById('encodingSelect');
+encodingSelect.addEventListener('change', (e) => {
+    if (currentTabId && openFiles[currentTabId]) {
+        openFiles[currentTabId].encoding = e.target.value;
+        // エンコードを変更したことも「未保存の変更」として扱う
+        if (!openFiles[currentTabId].isDirty) {
+            openFiles[currentTabId].isDirty = true;
+            updateTabDirtyStatus(currentTabId, true);
+        }
+    }
+});
 
 // --- 2. ファイルを開く処理 ---
 document.getElementById('openBtn').addEventListener('click', async () => {
@@ -115,10 +159,7 @@ document.getElementById('openBtn').addEventListener('click', async () => {
 });
 
 // --- ドラッグ＆ドロップ対応 ---
-document.body.addEventListener('dragover', (e) => {
-    e.preventDefault(); 
-});
-
+document.body.addEventListener('dragover', (e) => { e.preventDefault(); });
 document.body.addEventListener('drop', async (e) => {
     e.preventDefault();
     const items = e.dataTransfer.items;
@@ -139,9 +180,7 @@ document.body.addEventListener('drop', async (e) => {
                 await openFileFromHandle(handle);
             }
         }
-    } catch (err) {
-        console.error('ドロップ処理エラー:', err);
-    }
+    } catch (err) { console.error('ドロップ処理エラー:', err); }
 });
 
 // --- タブUI生成・切り替え・閉じる ---
@@ -154,7 +193,6 @@ function createTabUI(tabId, fileName) {
     const nameEl = document.createElement('span');
     nameEl.textContent = fileName;
     
-    // 🌟追加：未保存マーク(●)の要素をタブ内に作成（初期は非表示）
     const dirtyMark = document.createElement('span');
     dirtyMark.className = 'tab-dirty hidden';
     dirtyMark.textContent = '●';
@@ -168,12 +206,10 @@ function createTabUI(tabId, fileName) {
         await closeTab(tabId);
     });
 
-    tabEl.addEventListener('click', () => {
-        switchTab(tabId);
-    });
+    tabEl.addEventListener('click', () => { switchTab(tabId); });
 
     tabEl.appendChild(nameEl);
-    tabEl.appendChild(dirtyMark); // 名前の後ろに挿入
+    tabEl.appendChild(dirtyMark); 
     tabEl.appendChild(closeBtn);
     tabsContainer.appendChild(tabEl);
 }
@@ -182,6 +218,9 @@ function switchTab(tabId) {
     if (!openFiles[tabId]) return;
     currentTabId = tabId;
     editor.setModel(openFiles[tabId].model);
+    
+    // 🌟追加：タブを切り替えたら、そのファイルのエンコードをプルダウンに反映する
+    encodingSelect.value = openFiles[tabId].encoding;
     
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
@@ -192,28 +231,21 @@ function switchTab(tabId) {
 async function closeTab(tabId) {
     if (!openFiles[tabId]) return;
 
-    // 🌟新機能：Auto SaveがOFF、かつ未保存(isDirty)の場合、確認画面を出す
     if (!autoSaveEnabled && openFiles[tabId].isDirty) {
         const confirmClose = confirm(`「${openFiles[tabId].name}」への変更は保存されていません。\n保存せずに閉じますか？`);
-        if (!confirmClose) {
-            return; // 「キャンセル」が押されたら、閉じる処理をここで中断する
-        }
+        if (!confirmClose) return; 
     }
 
-    // Auto SaveがON、かつ未保存の場合、タイマーを待たずに即座に最終保存を行う
     if (autoSaveEnabled && openFiles[tabId].isDirty) {
         clearTimeout(autoSaveTimeout);
-        const writable = await openFiles[tabId].handle.createWritable();
         const content = (currentTabId === tabId) ? editor.getValue() : openFiles[tabId].model.getValue();
-        await writable.write(content);
-        await writable.close();
+        // 🌟変更点：共通の保存関数を使用
+        await writeContentToFile(openFiles[tabId].handle, content, openFiles[tabId].encoding);
     }
 
     openFiles[tabId].model.dispose();
-    
     const tabEl = document.getElementById(tabId);
     if (tabEl) tabEl.remove();
-
     delete openFiles[tabId];
 
     if (currentTabId === tabId) {
@@ -232,18 +264,14 @@ async function closeTab(tabId) {
 async function saveFile(isSilent = false) {
     if (!currentTabId || !openFiles[currentTabId]) return;
     try {
-        const handle = openFiles[currentTabId].handle;
-        const writable = await handle.createWritable();
-        await writable.write(editor.getValue());
-        await writable.close();
+        const content = editor.getValue();
+        // 🌟変更点：共通の保存関数を使用
+        await writeContentToFile(openFiles[currentTabId].handle, content, openFiles[currentTabId].encoding);
         
-        // 🌟変更点：保存が成功したら、未保存状態を解除する
         openFiles[currentTabId].isDirty = false;
-        updateTabDirtyStatus(currentTabId, false); // ●を消す
+        updateTabDirtyStatus(currentTabId, false); 
         
-        if (!isSilent) {
-            showToast(); 
-        }
+        if (!isSilent) showToast(); 
     } catch (err) {
         console.error('保存エラー:', err);
         if (!isSilent) alert('保存に失敗しました。');
@@ -256,52 +284,40 @@ window.addEventListener('keydown', async function(e) {
         e.preventDefault();
         await saveFile(false);
     }
-
     if (e.altKey && (e.key === 'w' || e.key === 'W')) {
         e.preventDefault();
-        if (currentTabId) {
-            await closeTab(currentTabId);
-        }
+        if (currentTabId) await closeTab(currentTabId);
     }
 });
 
 function showToast() {
     const toast = document.getElementById('toast');
     toast.className = 'toast-show';
-    setTimeout(() => {
-        toast.className = 'toast-hidden';
-    }, 3000);
+    setTimeout(() => { toast.className = 'toast-hidden'; }, 3000);
 }
 
-// ヘルプモーダルの制御
+// ヘルプモーダルと設定メニューの制御
 const helpBtn = document.getElementById('helpBtn');
 const helpModal = document.getElementById('helpModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
-
 helpBtn.addEventListener('click', () => { helpModal.classList.add('modal-show'); });
 closeModalBtn.addEventListener('click', () => { helpModal.classList.remove('modal-show'); });
-helpModal.addEventListener('click', (e) => {
-    if (e.target === helpModal) { helpModal.classList.remove('modal-show'); }
-});
+helpModal.addEventListener('click', (e) => { if (e.target === helpModal) { helpModal.classList.remove('modal-show'); } });
 
-// 設定メニュー（歯車）の開閉ロジック
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsMenu = document.getElementById('settingsMenu');
 const autoSaveToggle = document.getElementById('autoSaveToggle');
-
 autoSaveToggle.checked = autoSaveEnabled;
 
 settingsBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     settingsMenu.classList.toggle('menu-hidden');
 });
-
 document.addEventListener('click', (e) => {
     if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
         settingsMenu.classList.add('menu-hidden');
     }
 });
-
 autoSaveToggle.addEventListener('change', (e) => {
     autoSaveEnabled = e.target.checked;
     localStorage.setItem('autoSaveEnabled', autoSaveEnabled);
