@@ -65,10 +65,7 @@ require(['vs/editor/editor.main'], function () {
         if (currentTabId) await closeTab(currentTabId);
     });
 
-    // 🌟新規ファイル作成用のショートカット(Monaco内部)
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyN, function() {
-        createNewFile();
-    });
+    // 🌟変更：Ctrl+Nを削除し、Alt+Nのみに設定
     editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyN, function() {
         createNewFile();
     });
@@ -81,7 +78,6 @@ require(['vs/editor/editor.main'], function () {
             }
         }
 
-        // 🌟自動保存：ただしPC上の保存先が決まっている(handleがある)場合のみ実行
         if (autoSaveEnabled && currentTabId && openFiles[currentTabId].handle) {
             clearTimeout(autoSaveTimeout);
             autoSaveTimeout = setTimeout(async () => {
@@ -95,12 +91,10 @@ require(['vs/editor/editor.main'], function () {
     document.getElementById('zoomResetBtn').addEventListener('click', () => { editor.getAction('editor.action.fontZoomReset').run(); });
 });
 
-// 🌟新機能：空の新規ファイル（タブ）をエディタ上に立ち上げる関数
 function createNewFile() {
     const model = monaco.editor.createModel("", 'plaintext');
     const tabId = 'tab_' + (++tabCounter);
     
-    // handleをnullとして辞書に登録（未確定の新規ファイル状態）
     openFiles[tabId] = {
         handle: null,
         model: model,
@@ -114,24 +108,19 @@ function createNewFile() {
     updateEmptyState();
 }
 
-// 🌟新機能：ダイアログを開いてローカルの任意の場所に「名前を付けて保存」する関数
 async function saveFileAs() {
     if (!currentTabId || !openFiles[currentTabId]) return;
     try {
-        // ブラウザの保存ダイアログを呼び出す
         const handle = await window.showSaveFilePicker({
             suggestedName: openFiles[currentTabId].name
         });
         
-        // ハンドルと名前を確定データに更新
         openFiles[currentTabId].handle = handle;
         openFiles[currentTabId].name = handle.name;
         
-        // タブのUI表示名を更新
         const tabEl = document.getElementById(currentTabId);
         if (tabEl) tabEl.querySelector('span').textContent = handle.name;
         
-        // 決定されたファイルの拡張子から、Monacoエディタの言語を再セット
         const extMap = {
             'js': 'javascript', 'json': 'json', 'html': 'html', 'css': 'css',
             'ps1': 'powershell', 'py': 'python', 'xml': 'xml', 'md': 'markdown',
@@ -142,7 +131,6 @@ async function saveFileAs() {
         const language = extMap[ext] || 'plaintext';
         monaco.editor.setModelLanguage(openFiles[currentTabId].model, language);
 
-        // 実際にファイルに中身を書き込む
         const content = editor.getValue();
         await writeContentToFile(handle, content, openFiles[currentTabId].encoding);
         
@@ -205,7 +193,6 @@ document.getElementById('openBtn').addEventListener('click', async () => {
     } catch (err) { console.log('ファイルの選択がキャンセルされました', err); }
 });
 
-// 🌟追加：新規作成ボタンのイベントリスナー
 document.getElementById('newBtn').addEventListener('click', () => {
     createNewFile();
 });
@@ -272,13 +259,11 @@ function switchTab(tabId) {
 async function closeTab(tabId) {
     if (!openFiles[tabId]) return;
 
-    // 🌟変更点：PC上の保存先がない新規ファイル、またはAuto SaveがOFFで変更がある場合に警告を出す
     if (openFiles[tabId].isDirty && (!openFiles[tabId].handle || !autoSaveEnabled)) {
         const confirmClose = confirm(`「${openFiles[tabId].name}」への変更は保存されていません。\n保存せずに閉じますか？`);
         if (!confirmClose) return; 
     }
 
-    // 保存先が確定しており、Auto SaveがON、かつ未保存の場合に最終自動保存
     if (autoSaveEnabled && openFiles[tabId].isDirty && openFiles[tabId].handle) {
         clearTimeout(autoSaveTimeout);
         const content = (currentTabId === tabId) ? editor.getValue() : openFiles[tabId].model.getValue();
@@ -303,9 +288,8 @@ async function closeTab(tabId) {
 async function saveFile(isSilent = false) {
     if (!currentTabId || !openFiles[currentTabId]) return;
     
-    // 🌟変更点：PC上の保存先が決まっていない新規ファイルの場合は「名前を付けて保存」を呼び出す
     if (!openFiles[currentTabId].handle) {
-        if (isSilent) return; // タイピング中のバックグラウンド自動保存要求の場合は無視（ダイアログの邪魔防止）
+        if (isSilent) return; 
         await saveFileAs();
         return;
     }
@@ -334,9 +318,9 @@ window.addEventListener('keydown', async function(e) {
         e.preventDefault();
         if (currentTabId) await closeTab(currentTabId);
     }
-    // 🌟追加：Ctrl + N または Alt + N (新規作成)
-    if (((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) || (e.altKey && (e.key === 'n' || e.key === 'N'))) {
-        e.preventDefault(); // ブラウザ標準の新規ウィンドウ展開などをブロック
+    // 🌟変更：Alt + N のみに限定 (Ctrl + N の判定を削除)
+    if (e.altKey && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
         createNewFile();
     }
 });
