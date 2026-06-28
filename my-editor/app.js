@@ -6,14 +6,13 @@ let tabCounter = 0;
 let autoSaveEnabled = localStorage.getItem('autoSaveEnabled') === 'true'; 
 let autoSaveTimeout = null;
 
-// 空画面とUIの更新
 function updateEmptyState() {
     const emptyState = document.getElementById('empty-state');
     const encodingSelect = document.getElementById('encodingSelect');
     
     if (Object.keys(openFiles).length === 0) {
         emptyState.classList.remove('hidden'); 
-        encodingSelect.classList.add('hidden'); // ファイルが無い時は非表示
+        encodingSelect.classList.add('hidden'); 
     } else {
         emptyState.classList.add('hidden'); 
         encodingSelect.classList.remove('hidden');
@@ -33,19 +32,15 @@ function updateTabDirtyStatus(tabId, isDirty) {
     }
 }
 
-// 🌟新機能：ファイル書き込み時の共通処理（BOM対応）
 async function writeContentToFile(handle, content, encoding) {
     let writeData = content;
-    
     if (encoding === 'utf8bom') {
-        // UTF-8の文字列をバイト配列に変換し、先頭にBOM(EF BB BF)を付与する
         const encoder = new TextEncoder();
         const textBytes = encoder.encode(content);
         writeData = new Uint8Array(3 + textBytes.length);
         writeData.set([0xEF, 0xBB, 0xBF], 0);
         writeData.set(textBytes, 3);
     }
-    
     const writable = await handle.createWritable();
     await writable.write(writeData);
     await writable.close();
@@ -70,6 +65,14 @@ require(['vs/editor/editor.main'], function () {
         if (currentTabId) await closeTab(currentTabId);
     });
 
+    // 🌟新規ファイル作成用のショートカット(Monaco内部)
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyN, function() {
+        createNewFile();
+    });
+    editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyN, function() {
+        createNewFile();
+    });
+
     editor.onDidChangeModelContent(() => {
         if (currentTabId && openFiles[currentTabId]) {
             if (!openFiles[currentTabId].isDirty) {
@@ -78,7 +81,8 @@ require(['vs/editor/editor.main'], function () {
             }
         }
 
-        if (autoSaveEnabled && currentTabId) {
+        // 🌟自動保存：ただしPC上の保存先が決まっている(handleがある)場合のみ実行
+        if (autoSaveEnabled && currentTabId && openFiles[currentTabId].handle) {
             clearTimeout(autoSaveTimeout);
             autoSaveTimeout = setTimeout(async () => {
                 await saveFile(true); 
@@ -86,21 +90,72 @@ require(['vs/editor/editor.main'], function () {
         }
     });
 
-    document.getElementById('zoomInBtn').addEventListener('click', () => {
-        editor.getAction('editor.action.fontZoomIn').run();
-    });
-    document.getElementById('zoomOutBtn').addEventListener('click', () => {
-        editor.getAction('editor.action.fontZoomOut').run();
-    });
-    document.getElementById('zoomResetBtn').addEventListener('click', () => {
-        editor.getAction('editor.action.fontZoomReset').run();
-    });
+    document.getElementById('zoomInBtn').addEventListener('click', () => { editor.getAction('editor.action.fontZoomIn').run(); });
+    document.getElementById('zoomOutBtn').addEventListener('click', () => { editor.getAction('editor.action.fontZoomOut').run(); });
+    document.getElementById('zoomResetBtn').addEventListener('click', () => { editor.getAction('editor.action.fontZoomReset').run(); });
 });
+
+// 🌟新機能：空の新規ファイル（タブ）をエディタ上に立ち上げる関数
+function createNewFile() {
+    const model = monaco.editor.createModel("", 'plaintext');
+    const tabId = 'tab_' + (++tabCounter);
+    
+    // handleをnullとして辞書に登録（未確定の新規ファイル状態）
+    openFiles[tabId] = {
+        handle: null,
+        model: model,
+        name: `新規ファイル_${tabCounter}.txt`,
+        isDirty: false,
+        encoding: 'utf8'
+    };
+
+    createTabUI(tabId, openFiles[tabId].name);
+    switchTab(tabId);
+    updateEmptyState();
+}
+
+// 🌟新機能：ダイアログを開いてローカルの任意の場所に「名前を付けて保存」する関数
+async function saveFileAs() {
+    if (!currentTabId || !openFiles[currentTabId]) return;
+    try {
+        // ブラウザの保存ダイアログを呼び出す
+        const handle = await window.showSaveFilePicker({
+            suggestedName: openFiles[currentTabId].name
+        });
+        
+        // ハンドルと名前を確定データに更新
+        openFiles[currentTabId].handle = handle;
+        openFiles[currentTabId].name = handle.name;
+        
+        // タブのUI表示名を更新
+        const tabEl = document.getElementById(currentTabId);
+        if (tabEl) tabEl.querySelector('span').textContent = handle.name;
+        
+        // 決定されたファイルの拡張子から、Monacoエディタの言語を再セット
+        const extMap = {
+            'js': 'javascript', 'json': 'json', 'html': 'html', 'css': 'css',
+            'ps1': 'powershell', 'py': 'python', 'xml': 'xml', 'md': 'markdown',
+            'ts': 'typescript', 'sql': 'sql', 'java': 'java', 'cs': 'csharp',
+            'c': 'c', 'cpp': 'cpp', 'sh': 'shell', 'bat': 'bat'
+        };
+        const ext = handle.name.split('.').pop().toLowerCase();
+        const language = extMap[ext] || 'plaintext';
+        monaco.editor.setModelLanguage(openFiles[currentTabId].model, language);
+
+        // 実際にファイルに中身を書き込む
+        const content = editor.getValue();
+        await writeContentToFile(handle, content, openFiles[currentTabId].encoding);
+        
+        openFiles[currentTabId].isDirty = false;
+        updateTabDirtyStatus(currentTabId, false);
+        showToast();
+    } catch (err) {
+        console.log('名前を付けて保存がキャンセルされました', err);
+    }
+}
 
 async function openFileFromHandle(handle) {
     const file = await handle.getFile();
-    
-    // 🌟変更点：生のバイトデータとして読み込み、BOMを判定する
     const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     let encoding = 'utf8';
@@ -109,7 +164,6 @@ async function openFileFromHandle(handle) {
         encoding = 'utf8bom';
     }
     
-    // バイトデータを文字列に変換（TextDecoderはBOMを自動で取り除いてくれる）
     const decoder = new TextDecoder('utf-8');
     const text = decoder.decode(bytes);
 
@@ -125,7 +179,6 @@ async function openFileFromHandle(handle) {
     const model = monaco.editor.createModel(text, language);
     const tabId = 'tab_' + (++tabCounter);
     
-    // 🌟変更点：ファイルのプロパティにエンコード情報を追加
     openFiles[tabId] = { handle: handle, model: model, name: file.name, isDirty: false, encoding: encoding };
 
     createTabUI(tabId, file.name);
@@ -133,12 +186,10 @@ async function openFileFromHandle(handle) {
     updateEmptyState(); 
 }
 
-// --- エンコードUIの連動 ---
 const encodingSelect = document.getElementById('encodingSelect');
 encodingSelect.addEventListener('change', (e) => {
     if (currentTabId && openFiles[currentTabId]) {
         openFiles[currentTabId].encoding = e.target.value;
-        // エンコードを変更したことも「未保存の変更」として扱う
         if (!openFiles[currentTabId].isDirty) {
             openFiles[currentTabId].isDirty = true;
             updateTabDirtyStatus(currentTabId, true);
@@ -146,16 +197,17 @@ encodingSelect.addEventListener('change', (e) => {
     }
 });
 
-// --- 2. ファイルを開く処理 ---
+// --- 2. 各ボタンのクリックイベント処理 ---
 document.getElementById('openBtn').addEventListener('click', async () => {
     try {
         const handles = await window.showOpenFilePicker({ multiple: true });
-        for (const handle of handles) {
-            await openFileFromHandle(handle);
-        }
-    } catch (err) {
-        console.log('ファイルの選択がキャンセルされました', err);
-    }
+        for (const handle of handles) { await openFileFromHandle(handle); }
+    } catch (err) { console.log('ファイルの選択がキャンセルされました', err); }
+});
+
+// 🌟追加：新規作成ボタンのイベントリスナー
+document.getElementById('newBtn').addEventListener('click', () => {
+    createNewFile();
 });
 
 // --- ドラッグ＆ドロップ対応 ---
@@ -164,22 +216,14 @@ document.body.addEventListener('drop', async (e) => {
     e.preventDefault();
     const items = e.dataTransfer.items;
     if (!items) return;
-
     const handlePromises = [];
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
-        if (item.kind === 'file') {
-            handlePromises.push(item.getAsFileSystemHandle());
-        }
+        if (item.kind === 'file') { handlePromises.push(item.getAsFileSystemHandle()); }
     }
-
     try {
         const handles = await Promise.all(handlePromises);
-        for (const handle of handles) {
-            if (handle && handle.kind === 'file') {
-                await openFileFromHandle(handle);
-            }
-        }
+        for (const handle of handles) { if (handle && handle.kind === 'file') { await openFileFromHandle(handle); } }
     } catch (err) { console.error('ドロップ処理エラー:', err); }
 });
 
@@ -218,28 +262,26 @@ function switchTab(tabId) {
     if (!openFiles[tabId]) return;
     currentTabId = tabId;
     editor.setModel(openFiles[tabId].model);
-    
-    // 🌟追加：タブを切り替えたら、そのファイルのエンコードをプルダウンに反映する
     encodingSelect.value = openFiles[tabId].encoding;
     
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-
     editor.focus();
 }
 
 async function closeTab(tabId) {
     if (!openFiles[tabId]) return;
 
-    if (!autoSaveEnabled && openFiles[tabId].isDirty) {
+    // 🌟変更点：PC上の保存先がない新規ファイル、またはAuto SaveがOFFで変更がある場合に警告を出す
+    if (openFiles[tabId].isDirty && (!openFiles[tabId].handle || !autoSaveEnabled)) {
         const confirmClose = confirm(`「${openFiles[tabId].name}」への変更は保存されていません。\n保存せずに閉じますか？`);
         if (!confirmClose) return; 
     }
 
-    if (autoSaveEnabled && openFiles[tabId].isDirty) {
+    // 保存先が確定しており、Auto SaveがON、かつ未保存の場合に最終自動保存
+    if (autoSaveEnabled && openFiles[tabId].isDirty && openFiles[tabId].handle) {
         clearTimeout(autoSaveTimeout);
         const content = (currentTabId === tabId) ? editor.getValue() : openFiles[tabId].model.getValue();
-        // 🌟変更点：共通の保存関数を使用
         await writeContentToFile(openFiles[tabId].handle, content, openFiles[tabId].encoding);
     }
 
@@ -251,11 +293,8 @@ async function closeTab(tabId) {
     if (currentTabId === tabId) {
         currentTabId = null;
         editor.setModel(null); 
-        
         const remainingTabs = Object.keys(openFiles);
-        if (remainingTabs.length > 0) {
-            switchTab(remainingTabs[remainingTabs.length - 1]);
-        }
+        if (remainingTabs.length > 0) { switchTab(remainingTabs[remainingTabs.length - 1]); }
     }
     updateEmptyState(); 
 }
@@ -263,14 +302,19 @@ async function closeTab(tabId) {
 // --- 3. 保存処理 ---
 async function saveFile(isSilent = false) {
     if (!currentTabId || !openFiles[currentTabId]) return;
+    
+    // 🌟変更点：PC上の保存先が決まっていない新規ファイルの場合は「名前を付けて保存」を呼び出す
+    if (!openFiles[currentTabId].handle) {
+        if (isSilent) return; // タイピング中のバックグラウンド自動保存要求の場合は無視（ダイアログの邪魔防止）
+        await saveFileAs();
+        return;
+    }
+
     try {
         const content = editor.getValue();
-        // 🌟変更点：共通の保存関数を使用
         await writeContentToFile(openFiles[currentTabId].handle, content, openFiles[currentTabId].encoding);
-        
         openFiles[currentTabId].isDirty = false;
         updateTabDirtyStatus(currentTabId, false); 
-        
         if (!isSilent) showToast(); 
     } catch (err) {
         console.error('保存エラー:', err);
@@ -278,15 +322,22 @@ async function saveFile(isSilent = false) {
     }
 }
 
-// --- 4. キーボードショートカット制御 ---
+// --- 4. キーボードショートカット制御（ブラウザ全体用） ---
 window.addEventListener('keydown', async function(e) {
+    // Ctrl + S (保存)
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         await saveFile(false);
     }
+    // Alt + W (タブを閉じる)
     if (e.altKey && (e.key === 'w' || e.key === 'W')) {
         e.preventDefault();
         if (currentTabId) await closeTab(currentTabId);
+    }
+    // 🌟追加：Ctrl + N または Alt + N (新規作成)
+    if (((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) || (e.altKey && (e.key === 'n' || e.key === 'N'))) {
+        e.preventDefault(); // ブラウザ標準の新規ウィンドウ展開などをブロック
+        createNewFile();
     }
 });
 
@@ -309,18 +360,8 @@ const settingsMenu = document.getElementById('settingsMenu');
 const autoSaveToggle = document.getElementById('autoSaveToggle');
 autoSaveToggle.checked = autoSaveEnabled;
 
-settingsBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    settingsMenu.classList.toggle('menu-hidden');
-});
-document.addEventListener('click', (e) => {
-    if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
-        settingsMenu.classList.add('menu-hidden');
-    }
-});
-autoSaveToggle.addEventListener('change', (e) => {
-    autoSaveEnabled = e.target.checked;
-    localStorage.setItem('autoSaveEnabled', autoSaveEnabled);
-});
+settingsBtn.addEventListener('click', (e) => { e.stopPropagation(); settingsMenu.classList.toggle('menu-hidden'); });
+document.addEventListener('click', (e) => { if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) { settingsMenu.classList.add('menu-hidden'); } });
+autoSaveToggle.addEventListener('change', (e) => { autoSaveEnabled = e.target.checked; localStorage.setItem('autoSaveEnabled', autoSaveEnabled); });
 
 updateEmptyState();
