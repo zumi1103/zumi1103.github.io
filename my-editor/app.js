@@ -78,7 +78,6 @@ require(['vs/editor/editor.main'], function () {
             }
         }
 
-        // 自動保存（PC上のファイルハンドルが確定している時のみ）
         if (autoSaveEnabled && currentTabId && openFiles[currentTabId].handle) {
             clearTimeout(autoSaveTimeout);
             autoSaveTimeout = setTimeout(async () => {
@@ -92,7 +91,6 @@ require(['vs/editor/editor.main'], function () {
     document.getElementById('zoomResetBtn').addEventListener('click', () => { editor.getAction('editor.action.fontZoomReset').run(); });
 });
 
-// 新規ファイル作成
 function createNewFile() {
     const model = monaco.editor.createModel("", 'plaintext');
     const tabId = 'tab_' + (++tabCounter);
@@ -111,7 +109,6 @@ function createNewFile() {
     updateEmptyState();
 }
 
-// 名前を付けて保存
 async function saveFileAs() {
     if (!currentTabId || !openFiles[currentTabId]) return;
     try {
@@ -148,9 +145,7 @@ async function saveFileAs() {
     }
 }
 
-// 🌟変更点：パンくず表示用の相対パス（pathString）を受け取れるように拡張
 async function openFileFromHandle(handle, pathString = null) {
-    // 既に全く同じファイル・パス構成で開かれている場合はタブ切り替えのみ行う
     for (const id in openFiles) {
         if (openFiles[id].handle && openFiles[id].handle.name === handle.name) {
             if (!pathString || openFiles[id].pathString === pathString) {
@@ -184,7 +179,6 @@ async function openFileFromHandle(handle, pathString = null) {
     const model = monaco.editor.createModel(text, language);
     const tabId = 'tab_' + (++tabCounter);
     
-    // パス指定が無い（ドラッグ＆ドロップなど）場合のデフォルトパンくず
     const finalPathString = pathString || `フォルダ外のファイル > ${file.name}`;
     
     openFiles[tabId] = { 
@@ -201,34 +195,29 @@ async function openFileFromHandle(handle, pathString = null) {
     updateEmptyState(); 
 }
 
-// --- 🌟新機能：フォルダを開き、再帰スキャンしてサイドバーにツリーを生成する処理 ---
 document.getElementById('openDirBtn').addEventListener('click', async () => {
     try {
         const dirHandle = await window.showDirectoryPicker();
         const fileTreeContainer = document.getElementById('file-tree');
-        fileTreeContainer.innerHTML = ''; // 初期化
+        fileTreeContainer.innerHTML = ''; 
 
-        // ルートフォルダ要素の作成
         const rootEl = document.createElement('div');
         rootEl.className = 'tree-item tree-folder';
         rootEl.textContent = `📁 ${dirHandle.name}`;
         fileTreeContainer.appendChild(rootEl);
 
-        // 再帰処理をスタート
         await traverseDirectory(dirHandle, fileTreeContainer, 1, dirHandle.name);
     } catch (err) {
         console.error('フォルダの選択がキャンセルまたは拒否されました:', err);
     }
 });
 
-// 🌟新機能：ディレクトリを走査する高度な再帰関数
 async function traverseDirectory(dirHandle, containerEl, depth, currentPath) {
     const entries = [];
     for await (const entry of dirHandle.values()) {
         entries.push(entry);
     }
     
-    // VSCodeに準拠：フォルダを上、ファイルを下に、それぞれ名前順でソート
     entries.sort((a, b) => {
         if (a.kind !== b.kind) {
             return a.kind === 'directory' ? -1 : 1;
@@ -238,22 +227,19 @@ async function traverseDirectory(dirHandle, containerEl, depth, currentPath) {
 
     for (const entry of entries) {
         const itemEl = document.createElement('div');
-        itemEl.className = `tree-item indent-${depth}`; // 階層に応じたインデントクラスを付与
+        itemEl.className = `tree-item indent-${depth}`; 
         
-        // パンくず用の相対パス文字列を蓄積構築
         const newPath = `${currentPath} > ${entry.name}`;
 
         if (entry.kind === 'directory') {
             itemEl.classList.add('tree-folder');
             itemEl.textContent = `📁 ${entry.name}`;
             containerEl.appendChild(itemEl);
-            // 深さを1増やしてさらに子階層を走査
             await traverseDirectory(entry, containerEl, depth + 1, newPath);
         } else {
             itemEl.classList.add('tree-file');
             itemEl.textContent = `📄 ${entry.name}`;
             
-            // サイドバーのファイル名クリックでエディタで開く（相対パス情報を同封）
             itemEl.addEventListener('click', async () => {
                 await openFileFromHandle(entry, newPath);
             });
@@ -273,7 +259,6 @@ encodingSelect.addEventListener('change', (e) => {
     }
 });
 
-// --- 2. ファイルを開く / 新規作成ボタンのイベント ---
 document.getElementById('openBtn').addEventListener('click', async () => {
     try {
         const handles = await window.showOpenFilePicker({ multiple: true });
@@ -285,7 +270,6 @@ document.getElementById('newBtn').addEventListener('click', () => {
     createNewFile();
 });
 
-// ドラッグ＆ドロップ対応
 document.body.addEventListener('dragover', (e) => { e.preventDefault(); });
 document.body.addEventListener('drop', async (e) => {
     e.preventDefault();
@@ -325,6 +309,16 @@ function createTabUI(tabId, fileName) {
         await closeTab(tabId);
     });
 
+    // 🌟追加：マウスの中ボタン（ホイールクリック）でタブを閉じる処理
+    tabEl.addEventListener('mousedown', async (e) => {
+        // e.button === 1 はホイールクリックを指します
+        if (e.button === 1) {
+            e.preventDefault(); // ブラウザ標準のオートスクロールをブロック
+            e.stopPropagation();
+            await closeTab(tabId);
+        }
+    });
+
     tabEl.addEventListener('click', () => { switchTab(tabId); });
 
     tabEl.appendChild(nameEl);
@@ -339,7 +333,6 @@ function switchTab(tabId) {
     editor.setModel(openFiles[tabId].model);
     encodingSelect.value = openFiles[tabId].encoding;
     
-    // 🌟新機能：タブ切り替え時、上部のパンくずリスト（相対パス）を連動書き換え
     document.getElementById('breadcrumbs-text').textContent = openFiles[tabId].pathString;
     
     document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
