@@ -10,6 +10,7 @@
     <div id="toolbar">
         <h1 id="app-title">My Editor</h1>
         <button id="openBtn">ファイルを開く</button>
+        <button id="openDirBtn">フォルダを開く</button>
         <button id="newBtn">新規作成</button>
         <div id="tabs-container"></div>
         
@@ -38,13 +39,28 @@
         <button id="helpBtn" title="ショートカットキー一覧">i</button>
     </div>
 
-    <div id="main-area">
-        <div id="editor-container"></div>
-        
-        <div id="empty-state">
-            <div class="empty-state-content">
-                <h2>ここにファイルをドラッグ＆ドロップ</h2>
-                <p>または左上の「ファイルを開く」から選択してください</p>
+    <div id="layout-container">
+        <div id="sidebar">
+            <div id="sidebar-title">エクスプローラー</div>
+            <div id="file-tree">
+                <div class="tree-empty">フォルダが選択されていません</div>
+            </div>
+        </div>
+
+        <div id="main-content">
+            <div id="breadcrumbs">
+                <span id="breadcrumbs-text">ファイルが開かれていません</span>
+            </div>
+
+            <div id="main-area">
+                <div id="editor-container"></div>
+                
+                <div id="empty-state">
+                    <div class="empty-state-content">
+                        <h2>ここにファイルをドラッグ＆ドロップ</h2>
+                        <p>または左上の「ファイルを開く」・「フォルダを開く」から選択してください</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
